@@ -410,13 +410,16 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ---- ΜΟΝΟ ΤΟ ΠΕΔΙΟ ΟΝΟΜΑΤΟΣ ΧΡΗΣΤΗ ----
-user_typed_name = st.text_input(
-    "👤 Όνομα Χρήστη / Γκρουπ:",
-    value=st.session_state.user_typed_name,
-    placeholder="π.χ. Μητρουλης, Χαραλαμπιδης, Παππας..."
-).strip()
-st.session_state.user_typed_name = user_typed_name
+# ---- ΠΕΡΙΟΡΙΣΜΟΣ ΠΛΑΤΟΥΣ ΓΙΑ ΝΑ ΧΩΡΑΕΙ ΤΟ 'ΣΚΙΑΔΟΠΟΥΛΟΣ' ----
+col_input_space, col_empty_space = st.columns([3, 7])
+
+with col_input_space:
+  user_typed_name = st.text_input(
+      "👤 Όνομα Χρήστη / Γκρουπ:",
+      value=st.session_state.user_typed_name,
+      placeholder="π.χ. Σκιαδοπουλος..."
+  ).strip()
+  st.session_state.user_typed_name = user_typed_name
 
 active_filter = user_typed_name.lower()
 
