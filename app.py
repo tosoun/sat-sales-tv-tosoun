@@ -145,8 +145,8 @@ col_admin, col_input_space, col_empty_space = st.columns([2.5, 3.5, 4])
 
 with col_admin:
   with st.expander("⚙️ Διαχείριση Αρχείων (Admin)"):
-    # Χρησιμοποιούμε text απλό αντί για password για να μην ενεργοποιούνται οι μηχανισμοί ισχυρού κωδικού του iOS
-    password = st.text_input("Εισάγετε κωδικό διαχειριστή:", key="admin_pass", placeholder="Κωδικός")
+    # Χρησιμοποιούμε text απλό με type="password" απενεργοποιημένο πλήρως μέσω CSS/JS
+    password = st.text_input("Εισάγετε κωδικό διαχειριστή:", key="admin_pass", placeholder="Κωδικός", type="default")
     
     components.html("""
         <script>
@@ -154,8 +154,9 @@ with col_admin:
         const inputs = doc.querySelectorAll('input');
         inputs.forEach(input => {
             if (input.getAttribute('aria-label') && input.getAttribute('aria-label').includes('κωδικό')) {
-                input.setAttribute('autocomplete', 'username');
+                input.setAttribute('autocomplete', 'off');
                 input.setAttribute('data-form-type', 'other');
+                input.removeAttribute('name');
             }
         });
         </script>
