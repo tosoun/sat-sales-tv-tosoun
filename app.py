@@ -198,6 +198,7 @@ with col_admin:
       if "selected_report_date" not in st.session_state:
         st.session_state.selected_report_date = datetime.date.today()
 
+      # Όλα τα στοιχεία (Ημερομηνία, Ώρα, Κομφετί, Χειροκρότημα) σε μια ενιαία γραμμή (4 στήλες)
       col_date, col_time, col_confetti, col_cheer = st.columns([1.2, 1.2, 1, 1])
 
       with col_date:
