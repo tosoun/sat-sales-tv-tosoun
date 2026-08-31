@@ -338,7 +338,6 @@ def process_sales_df(df):
   return custom_title, df_stores, total_sum, max_sales
 
 
-# --- ΟΡΙΣΜΟΣ ΟΜΑΔΩΝ (ΓΚΡΟΥΠ) ΚΑΤΑΣΤΗΜΑΤΩΝ ---
 GROUPS_MAPPING = {
     "χαραλαμπιδης": [
         "211", "201", "347", "212", "239", 
@@ -377,7 +376,6 @@ GROUPS_MAPPING = {
     "σκι": ["κερκυρα", "κέρκυρα", "σκι"]
 }
 
-# Αρχικοποίηση μνήμης αναζήτησης
 if "search_input_val" not in st.session_state:
   st.session_state.search_input_val = "ΜΗΤΡΟΥΛΗΣ"
 
@@ -413,7 +411,6 @@ title_2, df_stores_2, _, max_sales_2 = process_sales_df(
     load_data(excel_path_2)
 )
 
-# Έξυπνο φιλτράρισμα βάσει γκρουπ ή μεμονωμένου καταστήματος
 def filter_dataframe(df_stores):
   if df_stores.empty:
     return df_stores, 0.0
@@ -626,4 +623,130 @@ try:
                         <span><b>{formatted_num} τμχ/κιλ</b></span>
                     </div>
                     <div class="progress-bar-bg">
-                        <div class
+                        <div class="progress-fill" style="width: {bar_width}%;"></div>
+                    </div>
+                </div>
+                """
+
+    formatted_total_1 = format_smart_num(total_sum_1)
+    html_content += f"""
+        <div class="poll-item total-item">
+            <div class="poll-info">
+                <span><b>TOTAL</b></span>
+                <span><b>{formatted_total_1} τμχ/κιλ</b></span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-fill" style="width: 100%;"></div>
+            </div>
+        </div>
+        """
+  else:
+    html_content += (
+        '<div style="color: white; padding: 20px;">Δεν βρέθηκαν δεδομένα.</div>'
+    )
+  html_content += "</div>"
+
+  # --- ΣΤΗΛΗ 2 ---
+  html_content += '<div class="product-column">'
+  html_content += f'<div class="sub-title">{title_2}</div>'
+
+  if not df_stores_2.empty:
+    for index, row in df_stores_2.iterrows():
+      katastima = str(row["Κατάστημα"])
+      if katastima.lower() == "nan" or not katastima.strip():
+        continue
+      num = row["Num_Sales"]
+      formatted_num = format_smart_num(num)
+      bar_width = (
+          round((num / max_sales_2) * 100) if max_sales_2 > 0 else 0
+      )
+      if bar_width > 100:
+        bar_width = 100
+
+      if index == 0:
+        html_content += f"""
+                <div class="poll-item">
+                    <div class="poll-info">
+                        <span><b>{katastima}</b></span>
+                        <span class="win-number-first">{formatted_num} τμχ/κιλ</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-fill" style="width: {bar_width}%;"></div>
+                    </div>
+                </div>
+                """
+      else:
+        html_content += f"""
+                <div class="poll-item">
+                    <div class="poll-info">
+                        <span><b>{katastima}</b></span>
+                        <span><b>{formatted_num} τμχ/κιλ</b></span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-fill" style="width: {bar_width}%;"></div>
+                    </div>
+                </div>
+                """
+
+    formatted_total_2 = format_smart_num(total_sum_2)
+    html_content += f"""
+        <div class="poll-item total-item">
+            <div class="poll-info">
+                <span><b>TOTAL</b></span>
+                <span><b>{formatted_total_2} τμχ/κιλ</b></span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-fill" style="width: 100%;"></div>
+            </div>
+        </div>
+        """
+  else:
+    html_content += (
+        '<div style="color: white; padding: 20px;">Δεν βρέθηκαν δεδομένα.</div>'
+    )
+  html_content += "</div>"
+
+  html_content += "</div>"
+
+  if confetti_enabled:
+    html_content += """
+        <script>
+            setTimeout(function() {
+                confetti({ particleCount: 90, spread: 90, origin: { x: 0.5, y: 0.25 } });
+                setTimeout(function() {
+                    confetti({ particleCount: 110, spread: 110, origin: { x: 0.5, y: 0.25 } });
+                }, 3000);
+            }, 300);
+        </script>
+        """
+
+  if cheer_enabled:
+    html_content += """
+        <script>
+            function playCheer() {
+                const audio = document.getElementById('cheerAudio');
+                if(audio) {
+                    audio.volume = 0.5;
+                    audio.play().then(() => {
+                        window.removeEventListener('click', playCheer);
+                        window.removeEventListener('touchstart', playCheer);
+                    }).catch(function(error) {
+                        console.log("Audio play blocked:", error.message);
+                    });
+                }
+            }
+
+            window.addEventListener('DOMContentLoaded', function() {
+                playCheer();
+            });
+
+            window.addEventListener('click', playCheer, { once: true });
+            window.addEventListener('touchstart', playCheer, { once: true });
+        </script>
+        """
+
+  html_content += '<div class="watermark">tosoun 2026</div></div></div>'
+  components.html(html_content, height=1400, scrolling=True)
+
+except Exception as e:
+  st.error(f"Σφάλμα: {e}")
