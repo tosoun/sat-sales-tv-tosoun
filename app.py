@@ -98,149 +98,202 @@ if os.path.exists(cheer_path):
   except Exception:
     pass
 
-with st.expander("⚙️ Διαχείριση Αρχείων (Admin)"):
-  password = st.text_input("Εισάγετε κωδικό διαχειριστή:", type="password")
-  if password == "2845":
-    st.markdown("---")
-    col_up1, col_up2 = st.columns(2)
+if "user_typed_name" not in st.session_state:
+  st.session_state.user_typed_name = ""
 
-    with col_up1:
-      uploaded_file_1 = st.file_uploader(
-          "Αρχείο για Προϊόν 1 (product1_sales.xlsx):",
-          type=["xlsx"],
-          key="up1",
-      )
-    with col_up2:
-      uploaded_file_2 = st.file_uploader(
-          "Αρχείο για Προϊόν 2 (product2_sales.xlsx):",
-          type=["xlsx"],
-          key="up2",
-      )
+st.markdown(
+    """
+    <style>
+    .row-widget.stTextInput { margin-bottom: 0px !important; }
+    div[data-testid="stTextInput"] label {
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        margin-bottom: 2px !important;
+        color: #e74c3c !important;
+    }
+    div[data-testid="stTextInput"] input {
+        padding: 4px 8px !important;
+        font-size: 13px !important;
+        min-height: 32px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-    st.markdown("---")
-    time_options = []
-    for hour in range(8, 23):
-      for minute in (0, 30):
-        time_options.append(datetime.time(hour, minute))
-    time_options.append(datetime.time(22, 0))
-    time_options = sorted(list(set(time_options)))
+# ---- ΕΠΑΝΩ ΣΕΙΡΑ: Admin και πεδίο Ονόματος Χρήστη δίπλα-δίπλα ----
+col_admin, col_input_space, col_empty_space = st.columns([2.5, 2.5, 5])
 
-    now = datetime.datetime.now() - datetime.timedelta(hours=1)
-    default_minute = 0 if now.minute < 30 else 30
-    default_hour = max(8, min(22, now.hour))
-    default_time = datetime.time(default_hour, default_minute)
+with col_admin:
+  with st.expander("⚙️ Διαχείριση Αρχείων (Admin)"):
+    password = st.text_input("Εισάγετε κωδικό διαχειριστή:", type="password")
+    if password == "2845":
+      st.markdown("---")
+      col_up1, col_up2 = st.columns(2)
 
-    if "selected_half_hour" not in st.session_state:
-      st.session_state.selected_half_hour = default_time
-
-    if "selected_report_date" not in st.session_state:
-      st.session_state.selected_report_date = datetime.date.today()
-
-    col_date, col_time, col_confetti, col_cheer = st.columns([1.2, 1.2, 1, 1])
-
-    with col_date:
-      selected_date = st.date_input(
-          "Ημερομηνία αναφοράς:",
-          value=st.session_state.selected_report_date,
-      )
-      st.session_state.selected_report_date = selected_date
-
-    with col_time:
-      selected_time = st.selectbox(
-          "Ώρα αναφοράς:",
-          options=time_options,
-          index=(
-              time_options.index(st.session_state.selected_half_hour)
-              if st.session_state.selected_half_hour in time_options
-              else 0
-          ),
-          format_func=lambda x: x.strftime("%H:%M"),
-      )
-      st.session_state.selected_half_hour = selected_time
-
-    with col_confetti:
-      confetti_choice = st.radio(
-          "Κομφετί:", ["ΝΑΙ", "ΟΧΙ"], index=0 if confetti_enabled else 1, horizontal=True, key="conf_radio"
-      )
-
-    with col_cheer:
-      cheer_choice = st.radio(
-          "Χειροκρότημα:",
-          ["ΝΑΙ", "ΟΧΙ"],
-          index=0 if cheer_enabled else 1,
-          horizontal=True,
-          key="cheer_radio"
-      )
-
-    if uploaded_file_1 is not None and uploaded_file_2 is not None:
-      upload_signature = f"{uploaded_file_1.name}_{uploaded_file_2.name}_{uploaded_file_1.size}_{uploaded_file_2.size}"
-      
-      if st.session_state.get("last_uploaded_sig") != upload_signature:
-        try:
-          gh_token = st.secrets["GITHUB_TOKEN"]
-          repo_name = st.secrets["REPO_NAME"]
-        except Exception:
-          gh_token, repo_name = None, None
-
-        current_time_str = selected_time.strftime("%H:%M")
-        current_date_str = selected_date.strftime("%d/%m/%Y")
-
-        with open(time_path, "w", encoding="utf-8") as tf:
-          tf.write(current_time_str)
-
-        with open(date_path, "w", encoding="utf-8") as df_file:
-          df_file.write(current_date_str)
-
-        with open(confetti_path, "w", encoding="utf-8") as cf:
-          cf.write(str(confetti_choice == "ΝΑΙ"))
-
-        with open(cheer_path, "w", encoding="utf-8") as ch:
-          ch.write(str(cheer_choice == "ΝΑΙ"))
-
-        with open(excel_path_1, "wb") as f:
-          f.write(uploaded_file_1.getbuffer())
-        if gh_token and repo_name:
-          upload_to_github(
-              excel_path_1,
-              repo_name,
-              gh_token,
-              "Auto-update product1_sales.xlsx",
-          )
-
-        with open(excel_path_2, "wb") as f:
-          f.write(uploaded_file_2.getbuffer())
-        if gh_token and repo_name:
-          upload_to_github(
-              excel_path_2,
-              repo_name,
-              gh_token,
-              "Auto-update product2_sales.xlsx",
-          )
-
-        if gh_token and repo_name:
-          upload_to_github(
-              time_path, repo_name, gh_token, "Auto-update upload time"
-          )
-          upload_to_github(
-              date_path, repo_name, gh_token, "Auto-update upload date"
-          )
-
-        st.session_state["last_uploaded_sig"] = upload_signature
-        st.success("Και τα δύο αρχεία ανέβηκαν αυτόματα και συγχρονίστηκαν επιτυχώς!")
-        
-        components.html(
-            """
-                <script>
-                    setTimeout(function() {
-                        window.parent.location.reload();
-                    }, 1500);
-                </script>
-            """,
-            height=0,
+      with col_up1:
+        uploaded_file_1 = st.file_uploader(
+            "Αρχείο για Προϊόν 1 (product1_sales.xlsx):",
+            type=["xlsx"],
+            key="up1",
+        )
+      with col_up2:
+        uploaded_file_2 = st.file_uploader(
+            "Αρχείο για Προϊόν 2 (product2_sales.xlsx):",
+            type=["xlsx"],
+            key="up2",
         )
 
-  elif password:
-    st.error("Λάθος κωδικός!")
+      st.markdown("---")
+      time_options = []
+      for hour in range(8, 23):
+        for minute in (0, 30):
+          time_options.append(datetime.time(hour, minute))
+      time_options.append(datetime.time(22, 0))
+      time_options = sorted(list(set(time_options)))
+
+      now = datetime.datetime.now() - datetime.timedelta(hours=1)
+      default_minute = 0 if now.minute < 30 else 30
+      default_hour = max(8, min(22, now.hour))
+      default_time = datetime.time(default_hour, default_minute)
+
+      if "selected_half_hour" not in st.session_state:
+        st.session_state.selected_half_hour = default_time
+
+      if "selected_report_date" not in st.session_state:
+        st.session_state.selected_report_date = datetime.date.today()
+
+      col_date, col_time, col_confetti, col_cheer = st.columns([1.2, 1.2, 1, 1])
+
+      with col_date:
+        selected_date = st.date_input(
+            "Ημερομηνία αναφοράς:",
+            value=st.session_state.selected_report_date,
+        )
+        st.session_state.selected_report_date = selected_date
+
+      with col_time:
+        selected_time = st.selectbox(
+            "Ώρα αναφοράς:",
+            options=time_options,
+            index=(
+                time_options.index(st.session_state.selected_half_hour)
+                if st.session_state.selected_half_hour in time_options
+                else 0
+            ),
+            format_func=lambda x: x.strftime("%H:%M"),
+        )
+        st.session_state.selected_half_hour = selected_time
+
+      with col_confetti:
+        confetti_choice = st.radio(
+            "Κομφετί:", ["ΝΑΙ", "ΟΧΙ"], index=0 if confetti_enabled else 1, horizontal=True, key="conf_radio"
+        )
+
+      with col_cheer:
+        cheer_choice = st.radio(
+            "Χειροκρότημα:",
+            ["ΝΑΙ", "ΟΧΙ"],
+            index=0 if cheer_enabled else 1,
+            horizontal=True,
+            key="cheer_radio"
+        )
+
+      if uploaded_file_1 is not None and uploaded_file_2 is not None:
+        upload_signature = f"{uploaded_file_1.name}_{uploaded_file_2.name}_{uploaded_file_1.size}_{uploaded_file_2.size}"
+        
+        if st.session_state.get("last_uploaded_sig") != upload_signature:
+          try:
+            gh_token = st.secrets["GITHUB_TOKEN"]
+            repo_name = st.secrets["REPO_NAME"]
+          except Exception:
+            gh_token, repo_name = None, None
+
+          current_time_str = selected_time.strftime("%H:%M")
+          current_date_str = selected_date.strftime("%d/%m/%Y")
+
+          with open(time_path, "w", encoding="utf-8") as tf:
+            tf.write(current_time_str)
+
+          with open(date_path, "w", encoding="utf-8") as df_file:
+            df_file.write(current_date_str)
+
+          with open(confetti_path, "w", encoding="utf-8") as cf:
+            cf.write(str(confetti_choice == "ΝΑΙ"))
+
+          with open(cheer_path, "w", encoding="utf-8") as ch:
+            ch.write(str(cheer_choice == "ΝΑΙ"))
+
+          with open(excel_path_1, "wb") as f:
+            f.write(uploaded_file_1.getbuffer())
+          if gh_token and repo_name:
+            upload_to_github(
+                excel_path_1,
+                repo_name,
+                gh_token,
+                "Auto-update product1_sales.xlsx",
+            )
+
+          with open(excel_path_2, "wb") as f:
+            f.write(uploaded_file_2.getbuffer())
+          if gh_token and repo_name:
+            upload_to_github(
+                excel_path_2,
+                repo_name,
+                gh_token,
+                "Auto-update product2_sales.xlsx",
+            )
+
+          if gh_token and repo_name:
+            upload_to_github(
+                time_path, repo_name, gh_token, "Auto-update upload time"
+            )
+            upload_to_github(
+                date_path, repo_name, gh_token, "Auto-update upload date"
+            )
+
+          st.session_state["last_uploaded_sig"] = upload_signature
+          st.success("Και τα δύο αρχεία ανέβηκαν αυτόματα και συγχρονίστηκαν επιτυχώς!")
+          
+          components.html(
+              """
+                  <script>
+                      setTimeout(function() {
+                          window.parent.location.reload();
+                      }, 1500);
+                  </script>
+              """,
+              height=0,
+          )
+
+    elif password:
+      st.error("Λάθος κωδικός!")
+
+with col_input_space:
+  user_typed_name = st.text_input(
+      "👤 Όνομα Χρήστη / Γκρουπ:",
+      value=st.session_state.user_typed_name,
+      placeholder="ΣΚΙΑΔΟΠΟΥΛΟΣ"
+  ).strip()
+  st.session_state.user_typed_name = user_typed_name
+
+active_filter = user_typed_name.lower()
+
+file_time_str = "--:--"
+if os.path.exists(time_path):
+  try:
+    with open(time_path, "r", encoding="utf-8") as tf:
+      file_time_str = tf.read().strip()
+  except Exception:
+    pass
+
+file_date_str = datetime.date.today().strftime("%d/%m/%Y")
+if os.path.exists(date_path):
+  try:
+    with open(date_path, "r", encoding="utf-8") as df_file:
+      file_date_str = df_file.read().strip()
+  except Exception:
+    pass
 
 
 def load_data(path):
@@ -386,58 +439,6 @@ GROUPS_MAPPING = {
     ],
     "σκιαδοπουλος": ["κερκυρα", "κέρκυρα", "σκιαδοπουλος"]
 }
-
-if "user_typed_name" not in st.session_state:
-  st.session_state.user_typed_name = ""
-
-st.markdown(
-    """
-    <style>
-    .row-widget.stTextInput { margin-bottom: 0px !important; }
-    div[data-testid="stTextInput"] label {
-        font-size: 13px !important;
-        font-weight: 700 !important;
-        margin-bottom: 2px !important;
-        color: #e74c3c !important;
-    }
-    div[data-testid="stTextInput"] input {
-        padding: 4px 8px !important;
-        font-size: 13px !important;
-        min-height: 32px !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# ---- ΠΕΡΙΟΡΙΣΜΟΣ ΠΛΑΤΟΥΣ ΓΙΑ ΝΑ ΧΩΡΑΕΙ ΤΟ 'ΣΚΙΑΔΟΠΟΥΛΟΣ' ----
-col_input_space, col_empty_space = st.columns([3, 7])
-
-with col_input_space:
-  user_typed_name = st.text_input(
-      "👤 Όνομα Χρήστη / Γκρουπ:",
-      value=st.session_state.user_typed_name,
-      placeholder="π.χ. Σκιαδοπουλος..."
-  ).strip()
-  st.session_state.user_typed_name = user_typed_name
-
-active_filter = user_typed_name.lower()
-
-file_time_str = "--:--"
-if os.path.exists(time_path):
-  try:
-    with open(time_path, "r", encoding="utf-8") as tf:
-      file_time_str = tf.read().strip()
-  except Exception:
-    pass
-
-file_date_str = datetime.date.today().strftime("%d/%m/%Y")
-if os.path.exists(date_path):
-  try:
-    with open(date_path, "r", encoding="utf-8") as df_file:
-      file_date_str = df_file.read().strip()
-  except Exception:
-    pass
 
 title_1, df_stores_1, _, max_sales_1 = process_sales_df(
     load_data(excel_path_1)
