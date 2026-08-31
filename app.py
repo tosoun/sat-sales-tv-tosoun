@@ -338,6 +338,17 @@ def process_sales_df(df):
   return custom_title, df_stores, total_sum, max_sales
 
 
+# --- ΦΙΛΤΡΑ ΑΝΑΖΗΤΗΣΗΣ & ΓΡΟΥΠ ΣΤΟ SIDEBAR ---
+with st.sidebar:
+  st.markdown("### 🔍 Αναζήτηση & Φίλτρα")
+  search_query = st.text_input("Αναζήτηση καταστήματος:", "").strip().lower()
+  
+  selected_groups = st.multiselect(
+      "Επιλογή Ομάδας (Γκρουπ):",
+      options=["ΧΑΡ", "ΜΗΤ", "ΠΑΠ", "ΠΑΤ", "ΣΚΙ"],
+      default=[]
+  )
+
 file_time_str = "--:--"
 if os.path.exists(time_path):
   try:
@@ -354,12 +365,36 @@ if os.path.exists(date_path):
   except Exception:
     pass
 
-title_1, df_stores_1, total_sum_1, max_sales_1 = process_sales_df(
+title_1, df_stores_1, _, max_sales_1 = process_sales_df(
     load_data(excel_path_1)
 )
-title_2, df_stores_2, total_sum_2, max_sales_2 = process_sales_df(
+title_2, df_stores_2, _, max_sales_2 = process_sales_df(
     load_data(excel_path_2)
 )
+
+# Εφαρμογή φίλτρων αναζήτησης και γκρουπ στα δεδομένα
+def filter_dataframe(df_stores):
+  if df_stores.empty:
+    return df_stores, 0.0
+  
+  filtered_df = df_stores.copy()
+  
+  # Φίλτρο κειμένου (αναζήτηση)
+  if search_query:
+    filtered_df = filtered_df[filtered_df["Κατάστημα"].str.lower().str.contains(search_query, na=False)]
+    
+  # Φίλτρο γκρουπ (ελέγχει αν το όνομα του καταστήματος περιέχει κάποιο από τα επιλεγμένα γκρουπ)
+  if selected_groups:
+    group_condition = filtered_df["Κατάστημα"].apply(
+        lambda x: any(g.lower() in x.lower() for g in selected_groups)
+    )
+    filtered_df = filtered_df[group_condition]
+    
+  total_sum = filtered_df["Num_Sales"].sum()
+  return filtered_df.reset_index(drop=True), total_sum
+
+df_stores_1, total_sum_1 = filter_dataframe(df_stores_1)
+df_stores_2, total_sum_2 = filter_dataframe(df_stores_2)
 
 img_src = ""
 banner_files = (
