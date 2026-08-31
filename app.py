@@ -105,11 +105,22 @@ st.markdown(
     """
     <style>
     .row-widget.stTextInput { margin-bottom: 0px !important; }
+    div[data-testid="stTextInput"] {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 15px !important;
+    }
     div[data-testid="stTextInput"] label {
         font-size: 13px !important;
         font-weight: 700 !important;
-        margin-bottom: 2px !important;
         color: #e74c3c !important;
+        margin-bottom: 0px !important;
+        white-space: nowrap !important;
+        min-width: fit-content !important;
+    }
+    div[data-testid="stTextInput"] div[data-baseweb="input"] {
+        flex-grow: 1 !important;
     }
     div[data-testid="stTextInput"] input {
         padding: 4px 8px !important;
@@ -122,11 +133,11 @@ st.markdown(
 )
 
 # ---- ΕΠΑΝΩ ΣΕΙΡΑ: Admin και πεδίο Ονόματος Χρήστη δίπλα-δίπλα ----
-col_admin, col_input_space, col_empty_space = st.columns([2.5, 2.5, 5])
+col_admin, col_input_space, col_empty_space = st.columns([2.5, 3.5, 4])
 
 with col_admin:
   with st.expander("⚙️ Διαχείριση Αρχείων (Admin)"):
-    password = st.text_input("Εισάγετε κωδικό διαχειριστή:", type="password")
+    password = st.text_input("Εισάγετε κωδικό διαχειριστή:", type="password", key="admin_pass")
     if password == "2845":
       st.markdown("---")
       col_up1, col_up2 = st.columns(2)
