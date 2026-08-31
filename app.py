@@ -36,8 +36,15 @@ st.markdown(
                 btn.style.display = 'none';
             }
         });
+        
+        // Απενεργοποίηση autocomplete / αποθήκευσης κωδικού σε iOS για πεδία password
+        const pwdInputs = doc.querySelectorAll('input[type="password"]');
+        pwdInputs.forEach(input => {
+            input.setAttribute('autocomplete', 'new-password');
+            input.setAttribute('data-form-type', 'other');
+        });
     }
-    setInterval(removeManageButton, 500);
+    setInterval(removeManageButton, 300);
     </script>
 """,
     unsafe_allow_html=True,
@@ -138,6 +145,20 @@ col_admin, col_input_space, col_empty_space = st.columns([2.5, 3.5, 4])
 with col_admin:
   with st.expander("⚙️ Διαχείριση Αρχείων (Admin)"):
     password = st.text_input("Εισάγετε κωδικό διαχειριστή:", type="password", key="admin_pass")
+    
+    # Προσθήκη επιπλέον άμεσου script για τον αποκλεισμό του popup αποθήκευσης συνθηματικών στο iOS
+    components.html("""
+        <script>
+        const doc = window.parent.document;
+        const pwdInputs = doc.querySelectorAll('input[type="password"]');
+        pwdInputs.forEach(input => {
+            input.setAttribute('autocomplete', 'new-password');
+            input.setAttribute('data-form-type', 'other');
+            input.setAttribute('name', 'no_save_pwd');
+        });
+        </script>
+    """, height=0)
+
     if password == "2845":
       st.markdown("---")
       col_up1, col_up2 = st.columns(2)
