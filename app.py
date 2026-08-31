@@ -21,6 +21,11 @@ st.markdown(
     [data-testid="stDecoration"] {visibility: hidden; display: none;}
     div[data-baseweb="select"] > div, .stRadio label p { color: white !important; }
     .block-container { padding: 0rem 0.5rem !important; max-width: 100% !important; }
+    
+    /* Μικρότερο ύψος και συμπαγής διάταξη για τα inputs στη γραμμή αναζήτησης */
+    div[data-testid="stHorizontalBlock"] {
+        align-items: center !important;
+    }
     </style>
     
     <script>
@@ -386,14 +391,75 @@ GROUPS_MAPPING = {
 if "search_input_val" not in st.session_state:
   st.session_state.search_input_val = "ΜΗΤΡΟΥΛΗΣ"
 
-col_head1, col_head2 = st.columns([1.5, 2])
-with col_head1:
+# ---- ΝΕΑ ΣΥΜΠΑΓΗΣ ΔΙΑΤΑΞΗ ΣΕ ΣΕΙΡΑ ----
+st.markdown(
+    """
+    <style>
+    /* Μείωση αποστάσεων στα input widgets πάνω-πάνω */
+    .row-widget.stTextInput { margin-bottom: 0px !important; }
+    div[data-testid="stTextInput"] label {
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        margin-bottom: 2px !important;
+        color: #3498db !important;
+    }
+    div[data-testid="stTextInput"] input {
+        padding: 4px 8px !important;
+        font-size: 13px !important;
+        min-height: 32px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Δημιουργία κουμπιών/επιλογών γρήγορης επιλογής γκρουπ σε σειρά μαζί με το πεδίο αναζήτησης
+col_search, col_quick1, col_quick2, col_quick3, col_quick4, col_quick5, col_quick6 = st.columns([2, 1, 1, 1, 1, 1, 1])
+
+with col_search:
   search_query = st.text_input(
-      "🔍 Αναζήτηση / Γκρουπ (π.χ. ΧΑΡΑΛΑΜΠΙΔΗΣ, ΜΗΤΡΟΥΛΗΣ, ΠΑΠΠΑΣ, ΠΑΤΣΗΣ, ΠΟΝ, ΣΚΙΑΔΟΠΟΥΛΟΣ):",
+      "🔍 Αναζήτηση / Γκρουπ:",
       value=st.session_state.search_input_val,
-      placeholder="Πληκτρολογήστε γκρουπ ή κατάστημα..."
+      placeholder="Γκρουπ ή κατάστημα..."
   ).strip().lower()
   st.session_state.search_input_val = search_query
+
+# Κουμπιά γρήγορης επιλογής δίπλα-δίπλα για ευκολία
+with col_quick1:
+  st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+  if st.button("ΜΗΤΡ", use_container_width=True):
+    st.session_state.search_input_val = "μητρουλης"
+    st.rerun()
+
+with col_quick2:
+  st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+  if st.button("ΧΑΡ", use_container_width=True):
+    st.session_state.search_input_val = "χαραλαμπιδης"
+    st.rerun()
+
+with col_quick3:
+  st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+  if st.button("ΠΑΠ", use_container_width=True):
+    st.session_state.search_input_val = "παππας"
+    st.rerun()
+
+with col_quick4:
+  st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+  if st.button("ΠΑΤ", use_container_width=True):
+    st.session_state.search_input_val = "πατ"
+    st.rerun()
+
+with col_quick5:
+  st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+  if st.button("ΠΟΝ", use_container_width=True):
+    st.session_state.search_input_val = "πον"
+    st.rerun()
+
+with col_quick6:
+  st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+  if st.button("ΟΛΑ", use_container_width=True):
+    st.session_state.search_input_val = ""
+    st.rerun()
 
 file_time_str = "--:--"
 if os.path.exists(time_path):
