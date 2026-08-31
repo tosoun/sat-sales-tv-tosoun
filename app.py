@@ -338,7 +338,16 @@ def process_sales_df(df):
   return custom_title, df_stores, total_sum, max_sales
 
 
-# --- ΑΡΧΙΚΟΠΟΙΗΣΗ ΤΟΥ ΓΚΡΟΥΠ "ΧΑΡ" ΩΣ ΠΡΟΕΠΙΛΟΓΗ ---
+# --- ΟΡΙΣΜΟΣ ΟΜΑΔΩΝ (ΓΚΡΟΥΠ) ΚΑΤΑΣΤΗΜΑΤΩΝ ---
+GROUPS_MAPPING = {
+    "χαρ": ["λαρισα", "βολος", "σκιαθος"],
+    "μητ": ["κοζανη", "πτολεμαιδα", "φλωρινα", "καστορια"],
+    "παπ": ["ελασσονα", "φαρσαλα", "καρδιτσα", "τρικαλα"],
+    "πατ": ["ιωαννινα", "πρεβεζα", "αρτα"],
+    "σκι": ["κερΚυρα"]
+}
+
+# Αρχικοποίηση μνήμης αναζήτησης
 if "search_input_val" not in st.session_state:
   st.session_state.search_input_val = "ΧΑΡ"
 
@@ -374,14 +383,21 @@ title_2, df_stores_2, _, max_sales_2 = process_sales_df(
     load_data(excel_path_2)
 )
 
-# Φιλτράρισμα βάσει της αναζήτησης
+# Έξυπνο φιλτράρισμα βάσει γκρουπ ή μεμονωμένου καταστήματος
 def filter_dataframe(df_stores):
   if df_stores.empty:
     return df_stores, 0.0
   
   filtered_df = df_stores.copy()
   if search_query:
-    filtered_df = filtered_df[filtered_df["Κατάστημα"].str.lower().str.contains(search_query, na=False)]
+    # Αν η λέξη αναζήτησης ταιριάζει σε κάποιο γκρουπ (π.χ. 'χαρ'), φιλτράρουμε τις πόλεις του γκρουπ
+    if search_query in GROUPS_MAPPING:
+      cities = GROUPS_MAPPING[search_query]
+      pattern = '|'.join(cities)
+      filtered_df = filtered_df[filtered_df["Κατάστημα"].str.lower().str.contains(pattern, na=False)]
+    else:
+      # Διαφορετικά ψάχνει κανονικά ως κείμενο/όνομα καταστήματος
+      filtered_df = filtered_df[filtered_df["Κατάστημα"].str.lower().str.contains(search_query, na=False)]
     
   total_sum = filtered_df["Num_Sales"].sum()
   return filtered_df.reset_index(drop=True), total_sum
