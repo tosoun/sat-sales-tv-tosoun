@@ -351,6 +351,7 @@ GROUPS_MAPPING = {
         "κοζανη", "σιατιστα", "πτολεμαιδα", "γρεβενα", "φλωρινα", "καστορια", "μάνιακοι", "μανιακοι"
     ],
     "παπ": ["ελασσονα", "φαρσαλα", "καρδιτσα", "τρικαλα"],
+    "πατ": ["τρικαλα", "καρδιτσα", "ελασσονα", "φαρσαλα"],  # Προστέθηκε το γκρουπ ΠΑΤ
     "πον": [
         "231", "232", "233", "373", "237", "235", 
         "372", "236", "483", "161", "166", "384", "234",
@@ -361,12 +362,12 @@ GROUPS_MAPPING = {
 
 # Αρχικοποίηση μνήμης αναζήτησης
 if "search_input_val" not in st.session_state:
-  st.session_state.search_input_val = "ΠΟΝ"
+  st.session_state.search_input_val = "ΠΑΤ"
 
 col_head1, col_head2 = st.columns([1.5, 2])
 with col_head1:
   search_query = st.text_input(
-      "🔍 Αναζήτηση / Γκρουπ (π.χ. ΧΑΡ, ΜΗΤ, ΠΑΠ, ΠΟΝ, ΣΚΙ):",
+      "🔍 Αναζήτηση / Γκρουπ (π.χ. ΧΑΡ, ΜΗΤ, ΠΑΠ, ΠΑΤ, ΠΟΝ, ΣΚΙ):",
       value=st.session_state.search_input_val,
       placeholder="Πληκτρολογήστε γκρουπ ή κατάστημα..."
   ).strip().lower()
@@ -569,7 +570,7 @@ try:
             </div>
 
             <div class="columns-container">
-    """
+  """
 
   # --- ΣΤΗΛΗ 1 ---
   html_content += '<div class="product-column">'
