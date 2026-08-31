@@ -447,27 +447,27 @@ if banner_files:
     )
 
 try:
-  css_styles = """
+  html_content = f"""
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-    @keyframes blink-number-slow {
-        0% { opacity: 1; color: #2ecc71; text-shadow: 0 0 12px rgba(46, 204, 113, 0.7); }
-        50% { opacity: 0.25; color: #27ae60; text-shadow: none; }
-        100% { opacity: 1; color: #2ecc71; text-shadow: 0 0 12px rgba(46, 204, 113, 0.7); }
-    }
+    @keyframes blink-number-slow {{
+        0% {{ opacity: 1; color: #2ecc71; text-shadow: 0 0 12px rgba(46, 204, 113, 0.7); }}
+        50% {{ opacity: 0.25; color: #27ae60; text-shadow: none; }}
+        100% {{ opacity: 1; color: #2ecc71; text-shadow: 0 0 12px rgba(46, 204, 113, 0.7); }}
+    }}
 
-    @keyframes rotate-phone-smooth {
-        0% { transform: rotate(0deg) scale(1); }
-        35% { transform: rotate(-90deg) scale(1.15); }
-        65% { transform: rotate(-90deg) scale(1.15); }
-        100% { transform: rotate(0deg) scale(1); }
-    }
+    @keyframes rotate-phone-smooth {{
+        0% {{ transform: rotate(0deg) scale(1); }}
+        35% {{ transform: rotate(-90deg) scale(1.15); }}
+        65% {{ transform: rotate(-90deg) scale(1.15); }}
+        100% {{ transform: rotate(0deg) scale(1); }}
+    }}
 
-    body { font-family: 'Montserrat', sans-serif; margin: 0; padding: 0; background: transparent; width: 100%; overflow-x: hidden; }
+    body {{ font-family: 'Montserrat', sans-serif; margin: 0; padding: 0; background: transparent; width: 100%; overflow-x: hidden; }}
     
-    .main-container { 
+    .main-container {{ 
         position: relative;
         background: rgba(0, 0, 0, 0.6); 
         padding: 0; 
@@ -480,16 +480,16 @@ try:
         margin: 0 auto; 
         text-align: center; 
         overflow: hidden;
-    }
+    }}
     
-    .banner-container {
+    .banner-container {{
         position: relative;
         width: 100%;
-    }
+    }}
 
-    .banner-img { width: 100%; height: auto; display: block; border-radius: 0; margin: 0; padding: 0; }
+    .banner-img {{ width: 100%; height: auto; display: block; border-radius: 0; margin: 0; padding: 0; }}
     
-    .rotate-hint-overlay {
+    .rotate-hint-overlay {{
         position: absolute;
         bottom: 8px;
         right: 12px;
@@ -498,17 +498,17 @@ try:
         gap: 5px;
         background: transparent;
         padding: 0;
-    }
+    }}
     
-    .phone-icon-wrap {
+    .phone-icon-wrap {{
         display: inline-block;
         font-size: 20px;
         transform-origin: center;
         animation: rotate-phone-smooth 3.5s infinite ease-in-out;
         filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
-    }
+    }}
 
-    .turn-mobile-text {
+    .turn-mobile-text {{
         font-size: 10px;
         color: #ffffff;
         text-transform: uppercase;
@@ -516,39 +516,114 @@ try:
         letter-spacing: 0.5px;
         white-space: nowrap;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
-    }
+    }}
 
-    @media (orientation: landscape) {
-        .rotate-hint-overlay {
+    @media (orientation: landscape) {{
+        .rotate-hint-overlay {{
             display: none !important;
-        }
-    }
+        }}
+    }}
 
-    .content-wrapper { padding: 25px; }
+    .content-wrapper {{ padding: 25px; }}
     
-    .header-area {
+    .header-area {{
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
-    }
+    }}
     
-    .top-left-area { text-align: left; }
-    .top-left-text { color: #3498db; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
-    .top-left-subtext { color: #2ecc71; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
-    .top-left-date { color: #bdc3c7; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin-top: 2px; }
-    .top-left-time { color: #95a5a6; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin-top: 2px; }
+    .top-left-area {{ text-align: left; }}
+    .top-left-text {{ color: #3498db; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }}
+    .top-left-subtext {{ color: #2ecc71; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }}
+    .top-left-date {{ color: #bdc3c7; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin-top: 2px; }}
+    .top-left-time {{ color: #95a5a6; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin-top: 2px; }}
 
-    .columns-container { 
+    .columns-container {{ 
         display: grid; 
         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
         gap: 20px; 
         width: 100%; 
-    }
-    .product-column { width: 100%; }
+    }}
+    .product-column {{ width: 100%; }}
 
-    .sub-title { color: #3498db; font-size: 18px; margin-bottom: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
+    .sub-title {{ color: #3498db; font-size: 18px; margin-bottom: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; text-align: center; }}
     
-    .poll-item { background: rgba(255, 255, 255, 0.08); padding: 12px 18px; border-radius: 12px; margin-bottom: 12px; text-align: left; border: 1px solid rgba(255, 255, 255, 0.1); }
+    .poll-item {{ background: rgba(255, 255, 255, 0.08); padding: 12px 18px; border-radius: 12px; margin-bottom: 12px; text-align: left; border: 1px solid rgba(255, 255, 255, 0.1); }}
     
-    .poll-info { display: flex; justify-content: space-between; align-items: flex-start; color: white; font-size: 1
+    .poll-info {{ display: flex; justify-content: space-between; align-items: flex-start; color: white; font-size: 15px; font-weight: 600; margin-bottom: 8px; gap: 10px; }}
+    .poll-info span:first-child {{ word-break: break-word; overflow-wrap: break-word; flex: 1; }}
+    .poll-info span:last-child {{ white-space: nowrap; text-align: right; flex-shrink: 0; }}
+    
+    .win-number-first {{ color: #2ecc71; animation: blink-number-slow 2.5s infinite ease-in-out; font-weight: 700; }}
+
+    .progress-bar-bg {{ background: rgba(255, 255, 255, 0.15); border-radius: 10px; height: 12px; width: 100%; overflow: hidden; }}
+    .progress-fill {{ background: #3498db; height: 100%; border-radius: 10px; }}
+    .total-item {{ background: rgba(52, 152, 219, 0.25); border: 1px solid #3498db; }}
+    
+    .watermark {{ text-align: right; color: rgba(255, 255, 255, 0.2); font-size: 10px; letter-spacing: 1px; margin-top: 15px; margin-right: 5px; text-transform: uppercase; user-select: none; }}
+    </style>
+    
+    <div class="main-container">
+        <div class="banner-container">
+            <img src="{img_src}" class="banner-img" alt="banner">
+            <div class="rotate-hint-overlay">
+                <span class="phone-icon-wrap">📱</span>
+                <span class="turn-mobile-text">TURN MOBILE</span>
+            </div>
+        </div>
+        <div class="content-wrapper">
+            <audio id="cheerAudio" preload="auto">
+                <source src="https://www.myinstants.com/media/sounds/applause.mp3" type="audio/mpeg">
+            </audio>
+
+            <div class="header-area">
+                <div class="top-left-area">
+                    <div class="top-left-text">ΤΟΜΕΑΣ 3</div>
+                    <div class="top-left-subtext">UPDATE SALES</div>
+                    <div class="top-left-date">{file_date_str}</div>
+                    <div class="top-left-time">εως: {file_time_str}</div>
+                </div>
+            </div>
+
+            <div class="columns-container">
+  """
+
+  # --- ΣΤΗΛΗ 1 ---
+  html_content += '<div class="product-column">'
+  html_content += f'<div class="sub-title">{title_1}</div>'
+
+  if not df_stores_1.empty:
+    for index, row in df_stores_1.iterrows():
+      katastima = str(row["Κατάστημα"])
+      if katastima.lower() == "nan" or not katastima.strip():
+        continue
+      num = row["Num_Sales"]
+      formatted_num = format_smart_num(num)
+      bar_width = (
+          round((num / max_sales_1) * 100) if max_sales_1 > 0 else 0
+      )
+      if bar_width > 100:
+        bar_width = 100
+
+      if index == 0:
+        html_content += f"""
+                <div class="poll-item">
+                    <div class="poll-info">
+                        <span><b>{katastima}</b></span>
+                        <span class="win-number-first">{formatted_num} τμχ/κιλ</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-fill" style="width: {bar_width}%;"></div>
+                    </div>
+                </div>
+                """
+      else:
+        html_content += f"""
+                <div class="poll-item">
+                    <div class="poll-info">
+                        <span><b>{katastima}</b></span>
+                        <span><b>{formatted_num} τμχ/κιλ</b></span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class
