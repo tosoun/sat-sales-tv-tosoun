@@ -37,11 +37,12 @@ st.markdown(
             }
         });
         
-        // Απενεργοποίηση autocomplete / αποθήκευσης κωδικού σε iOS για πεδία password
+        // Απόκρυψη προτροπών αποθήκευσης συνθηματικού / ισχυρού κωδικού σε iOS/Safari
         const pwdInputs = doc.querySelectorAll('input[type="password"]');
         pwdInputs.forEach(input => {
-            input.setAttribute('autocomplete', 'new-password');
+            input.setAttribute('autocomplete', 'username');
             input.setAttribute('data-form-type', 'other');
+            input.removeAttribute('name');
         });
     }
     setInterval(removeManageButton, 300);
@@ -144,17 +145,18 @@ col_admin, col_input_space, col_empty_space = st.columns([2.5, 3.5, 4])
 
 with col_admin:
   with st.expander("⚙️ Διαχείριση Αρχείων (Admin)"):
-    password = st.text_input("Εισάγετε κωδικό διαχειριστή:", type="password", key="admin_pass")
+    # Χρησιμοποιούμε text απλό αντί για password για να μην ενεργοποιούνται οι μηχανισμοί ισχυρού κωδικού του iOS
+    password = st.text_input("Εισάγετε κωδικό διαχειριστή:", key="admin_pass", placeholder="Κωδικός")
     
-    # Προσθήκη επιπλέον άμεσου script για τον αποκλεισμό του popup αποθήκευσης συνθηματικών στο iOS
     components.html("""
         <script>
         const doc = window.parent.document;
-        const pwdInputs = doc.querySelectorAll('input[type="password"]');
-        pwdInputs.forEach(input => {
-            input.setAttribute('autocomplete', 'new-password');
-            input.setAttribute('data-form-type', 'other');
-            input.setAttribute('name', 'no_save_pwd');
+        const inputs = doc.querySelectorAll('input');
+        inputs.forEach(input => {
+            if (input.getAttribute('aria-label') && input.getAttribute('aria-label').includes('κωδικό')) {
+                input.setAttribute('autocomplete', 'username');
+                input.setAttribute('data-form-type', 'other');
+            }
         });
         </script>
     """, height=0)
