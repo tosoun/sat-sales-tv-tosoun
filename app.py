@@ -387,9 +387,6 @@ GROUPS_MAPPING = {
     "σκιαδοπουλος": ["κερκυρα", "κέρκυρα", "σκιαδοπουλος"]
 }
 
-if "search_input_val" not in st.session_state:
-  st.session_state.search_input_val = ""
-
 if "user_typed_name" not in st.session_state:
   st.session_state.user_typed_name = ""
 
@@ -398,10 +395,10 @@ st.markdown(
     <style>
     .row-widget.stTextInput { margin-bottom: 0px !important; }
     div[data-testid="stTextInput"] label {
-        font-size: 11px !important;
-        font-weight: 600 !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
         margin-bottom: 2px !important;
-        color: #3498db !important;
+        color: #e74c3c !important;
     }
     div[data-testid="stTextInput"] input {
         padding: 4px 8px !important;
@@ -413,83 +410,15 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ---- ΠΛΑΙΣΙΟ ΟΝΟΜΑΤΟΣ ΧΡΗΣΤΗ & ΑΝΑΖΗΤΗΣΗΣ ----
-st.markdown(
-    """
-    <style>
-    div[data-testid="stTextInput"]#user_name_input_box label {
-        font-size: 13px !important;
-        font-weight: 700 !important;
-        color: #e74c3c !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# ---- ΜΟΝΟ ΤΟ ΠΕΔΙΟ ΟΝΟΜΑΤΟΣ ΧΡΗΣΤΗ ----
+user_typed_name = st.text_input(
+    "👤 Όνομα Χρήστη / Γκρουπ:",
+    value=st.session_state.user_typed_name,
+    placeholder="π.χ. Μητρουλης, Χαραλαμπιδης, Παππας..."
+).strip()
+st.session_state.user_typed_name = user_typed_name
 
-col_user_input, col_search, col_quick1, col_quick2, col_quick3, col_quick4, col_quick5, col_quick6 = st.columns([2, 2, 1, 1, 1, 1, 1, 1])
-
-with col_user_input:
-  user_typed_name = st.text_input(
-      "👤 Όνομα Χρήστη / Γκρουπ:",
-      value=st.session_state.user_typed_name,
-      placeholder="π.χ. Μητρουλης, Χαραλαμπιδης...",
-      key="user_name_input_box"
-  ).strip()
-  st.session_state.user_typed_name = user_typed_name
-
-with col_search:
-  search_query = st.text_input(
-      "🔍 Αναζήτηση / Κατάστημα:",
-      value=st.session_state.search_input_val,
-      placeholder="Γκρουπ ή κατάστημα..."
-  ).strip().lower()
-  st.session_state.search_input_val = search_query
-
-with col_quick1:
-  st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-  if st.button("ΜΗΤΡ", use_container_width=True):
-    st.session_state.user_typed_name = "μητρουλης"
-    st.session_state.search_input_val = ""
-    st.rerun()
-
-with col_quick2:
-  st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-  if st.button("ΧΑΡ", use_container_width=True):
-    st.session_state.user_typed_name = "χαραλαμπιδης"
-    st.session_state.search_input_val = ""
-    st.rerun()
-
-with col_quick3:
-  st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-  if st.button("ΠΑΠ", use_container_width=True):
-    st.session_state.user_typed_name = "παππας"
-    st.session_state.search_input_val = ""
-    st.rerun()
-
-with col_quick4:
-  st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-  if st.button("ΠΑΤ", use_container_width=True):
-    st.session_state.user_typed_name = "πατ"
-    st.session_state.search_input_val = ""
-    st.rerun()
-
-with col_quick5:
-  st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-  if st.button("ΠΟΝ", use_container_width=True):
-    st.session_state.user_typed_name = "πον"
-    st.session_state.search_input_val = ""
-    st.rerun()
-
-with col_quick6:
-  st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-  if st.button("ΟΛΑ", use_container_width=True):
-    st.session_state.user_typed_name = ""
-    st.session_state.search_input_val = ""
-    st.rerun()
-
-# Ενοποίηση φίλτρου από το πεδίο χρήστη ή την αναζήτηση
-active_filter = user_typed_name.lower() if user_typed_name else search_query
+active_filter = user_typed_name.lower()
 
 file_time_str = "--:--"
 if os.path.exists(time_path):
