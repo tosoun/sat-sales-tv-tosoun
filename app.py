@@ -338,9 +338,13 @@ def process_sales_df(df):
   return custom_title, df_stores, total_sum, max_sales
 
 
-# --- ΟΡΙΣΜΟΣ ΟΜΑΔΩΝ (ΓΚΡΟΥΠ) ΚΑΤΑΣΤΗΜΑΤΩΝ ---
+# --- ΟΡΙΣΜΟΣ ΟΜΑΔΩΝ (ΓΚΡΟΥΠ) ΚΑΤΑΣΤΗΜΑΤΩΝ ΜΕ ΒΑΣΗ ΤΟΥΣ ΚΩΔΙΚΟΥΣ ΤΗΣ ΕΙΚΟΝΑΣ ---
 GROUPS_MAPPING = {
-    "χαρ": ["λαρισα", "βολος", "σκιαθος"],
+    "χαρ": [
+        "211", "201", "347", "212", "239", 
+        "219", "220", "222", "223", "240", "242", "493",
+        "λαρισα", "βολος", "σκιαθος"
+    ],
     "μητ": ["κοζανη", "πτολεμαιδα", "φλωρινα", "καστορια"],
     "παπ": ["ελασσονα", "φαρσαλα", "καρδιτσα", "τρικαλα"],
     "πατ": ["ιωαννινα", "πρεβεζα", "αρτα"],
@@ -391,8 +395,8 @@ def filter_dataframe(df_stores):
   filtered_df = df_stores.copy()
   if search_query:
     if search_query in GROUPS_MAPPING:
-      cities = GROUPS_MAPPING[search_query]
-      pattern = '|'.join(cities)
+      keywords = GROUPS_MAPPING[search_query]
+      pattern = '|'.join(keywords)
       filtered_df = filtered_df[filtered_df["Κατάστημα"].str.lower().str.contains(pattern, na=False)]
     else:
       filtered_df = filtered_df[filtered_df["Κατάστημα"].str.lower().str.contains(search_query, na=False)]
