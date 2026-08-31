@@ -495,8 +495,8 @@ try:
   else:
     col2_html += '<div style="color: white; padding: 20px;">Δεν βρέθηκαν δεδομένα.</div>'
 
-  # Συνολικό HTML template
-  html_template = """
+  # Συνολικό HTML template (με f-string στην αρχή)
+  html_template = f"""
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
     
