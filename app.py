@@ -344,7 +344,7 @@ GROUPS_MAPPING = {
     "μητ": ["κοζανη", "πτολεμαιδα", "φλωρινα", "καστορια"],
     "παπ": ["ελασσονα", "φαρσαλα", "καρδιτσα", "τρικαλα"],
     "πατ": ["ιωαννινα", "πρεβεζα", "αρτα"],
-    "σκι": ["κερΚυρα"]
+    "σκι": ["κερκυρα", "κέρκυρα", "σκι"]
 }
 
 # Αρχικοποίηση μνήμης αναζήτησης
@@ -390,13 +390,11 @@ def filter_dataframe(df_stores):
   
   filtered_df = df_stores.copy()
   if search_query:
-    # Αν η λέξη αναζήτησης ταιριάζει σε κάποιο γκρουπ (π.χ. 'χαρ'), φιλτράρουμε τις πόλεις του γκρουπ
     if search_query in GROUPS_MAPPING:
       cities = GROUPS_MAPPING[search_query]
       pattern = '|'.join(cities)
       filtered_df = filtered_df[filtered_df["Κατάστημα"].str.lower().str.contains(pattern, na=False)]
     else:
-      # Διαφορετικά ψάχνει κανονικά ως κείμενο/όνομα καταστήματος
       filtered_df = filtered_df[filtered_df["Κατάστημα"].str.lower().str.contains(search_query, na=False)]
     
   total_sum = filtered_df["Num_Sales"].sum()
