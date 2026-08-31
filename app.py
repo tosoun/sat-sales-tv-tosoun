@@ -361,7 +361,7 @@ title_2, df_stores_2, total_sum_2, max_sales_2 = process_sales_df(
     load_data(excel_path_2)
 )
 
-# --- ΕΝΣΩΜΑΤΩΣΗ ΦΙΛΤΡΟΥ ΑΝΑΖΗΤΗΣΗΣ ---
+# --- ΦΙΛΤΡΟ ΑΝΑΖΗΤΗΣΗΣ ΚΑΤΑΣΤΗΜΑΤΩΝ ---
 all_stores_list = sorted(list(set(df_stores_1["Κατάστημα"].tolist() + df_stores_2["Κατάστημα"].tolist())))
 if all_stores_list:
     selected_stores = st.multiselect(
@@ -389,7 +389,114 @@ if banner_files:
     )
 
 try:
-  html_content = f"""
+  # Δημιουργία περιεχομένου στήλης 1
+  col1_html = f'<div class="sub-title">{title_1}</div>'
+  if not df_stores_1.empty:
+    for index, row in df_stores_1.iterrows():
+      katastima = str(row["Κατάστημα"])
+      if katastima.lower() == "nan" or not katastima.strip():
+        continue
+      num = row["Num_Sales"]
+      formatted_num = format_smart_num(num)
+      bar_width = round((num / max_sales_1) * 100) if max_sales_1 > 0 else 0
+      if bar_width > 100:
+        bar_width = 100
+
+      if index == 0:
+        col1_html += f"""
+                <div class="poll-item">
+                    <div class="poll-info">
+                        <span><b>{katastima}</b></span>
+                        <span class="win-number-first">{formatted_num} τμχ/κιλ</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-fill" style="width: {bar_width}%;"></div>
+                    </div>
+                </div>
+                """
+      else:
+        col1_html += f"""
+                <div class="poll-item">
+                    <div class="poll-info">
+                        <span><b>{katastima}</b></span>
+                        <span><b>{formatted_num} τμχ/κιλ</b></span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-fill" style="width: {bar_width}%;"></div>
+                    </div>
+                </div>
+                """
+
+    formatted_total_1 = format_smart_num(total_sum_1)
+    col1_html += f"""
+        <div class="poll-item total-item">
+            <div class="poll-info">
+                <span><b>TOTAL</b></span>
+                <span><b>{formatted_total_1} τμχ/κιλ</b></span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-fill" style="width: 100%;"></div>
+            </div>
+        </div>
+        """
+  else:
+    col1_html += '<div style="color: white; padding: 20px;">Δεν βρέθηκαν δεδομένα.</div>'
+
+  # Δημιουργία περιεχομένου στήλης 2
+  col2_html = f'<div class="sub-title">{title_2}</div>'
+  if not df_stores_2.empty:
+    for index, row in df_stores_2.iterrows():
+      katastima = str(row["Κατάστημα"])
+      if katastima.lower() == "nan" or not katastima.strip():
+        continue
+      num = row["Num_Sales"]
+      formatted_num = format_smart_num(num)
+      bar_width = round((num / max_sales_2) * 100) if max_sales_2 > 0 else 0
+      if bar_width > 100:
+        bar_width = 100
+
+      if index == 0:
+        col2_html += f"""
+                <div class="poll-item">
+                    <div class="poll-info">
+                        <span><b>{katastima}</b></span>
+                        <span class="win-number-first">{formatted_num} τμχ/κιλ</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-fill" style="width: {bar_width}%;"></div>
+                    </div>
+                </div>
+                """
+      else:
+        col2_html += f"""
+                <div class="poll-item">
+                    <div class="poll-info">
+                        <span><b>{katastima}</b></span>
+                        <span><b>{formatted_num} τμχ/κιλ</b></span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-fill" style="width: {bar_width}%;"></div>
+                    </div>
+                </div>
+                """
+
+    formatted_total_2 = format_smart_num(total_sum_2)
+    col2_html += f"""
+        <div class="poll-item total-item">
+            <div class="poll-info">
+                <span><b>TOTAL</b></span>
+                <span><b>{formatted_total_2} τμχ/κιλ</b></span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-fill" style="width: 100%;"></div>
+            </div>
+        </div>
+        """
+  else:
+    col2_html += '<div style="color: white; padding: 20px;">Δεν βρέθηκαν δεδομένα.</div>'
+
+  # Συνολικό HTML template
+  html_template = """
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
     
@@ -489,4 +596,94 @@ try:
     }}
     .product-column {{ width: 100%; }}
 
-    .sub
+    .sub-title {{ color: #3498db; font-size: 18px; margin-bottom: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; text-align: center; }}
+    
+    .poll-item {{ background: rgba(255, 255, 255, 0.08); padding: 12px 18px; border-radius: 12px; margin-bottom: 12px; text-align: left; border: 1px solid rgba(255, 255, 255, 0.1); }}
+    
+    .poll-info {{ display: flex; justify-content: space-between; align-items: flex-start; color: white; font-size: 15px; font-weight: 600; margin-bottom: 8px; gap: 10px; }}
+    .poll-info span:first-child {{ word-break: break-word; overflow-wrap: break-word; flex: 1; }}
+    .poll-info span:last-child {{ white-space: nowrap; text-align: right; flex-shrink: 0; }}
+    
+    .win-number-first {{ color: #2ecc71; animation: blink-number-slow 2.5s infinite ease-in-out; font-weight: 700; }}
+
+    .progress-bar-bg {{ background: rgba(255, 255, 255, 0.15); border-radius: 10px; height: 12px; width: 100%; overflow: hidden; }}
+    .progress-fill {{ background: #3498db; height: 100%; border-radius: 10px; }}
+    .total-item {{ background: rgba(52, 152, 219, 0.25); border: 1px solid #3498db; }}
+    
+    .watermark {{ text-align: right; color: rgba(255, 255, 255, 0.2); font-size: 10px; letter-spacing: 1px; margin-top: 15px; margin-right: 5px; text-transform: uppercase; user-select: none; }}
+    </style>
+    
+    <div class="main-container">
+        <div class="banner-container">
+            <img src="{img_src}" class="banner-img" alt="banner">
+            <div class="rotate-hint-overlay">
+                <span class="phone-icon-wrap">📱</span>
+                <span class="turn-mobile-text">TURN MOBILE</span>
+            </div>
+        </div>
+        <div class="content-wrapper">
+            <audio id="cheerAudio" preload="auto">
+                <source src="https://www.myinstants.com/media/sounds/applause.mp3" type="audio/mpeg">
+            </audio>
+
+            <div class="header-area">
+                <div class="top-left-area">
+                    <div class="top-left-text">ΤΟΜΕΑΣ 3</div>
+                    <div class="top-left-subtext">UPDATE SALES</div>
+                    <div class="top-left-date">{file_date_str}</div>
+                    <div class="top-left-time">εως: {file_time_str}</div>
+                </div>
+            </div>
+
+            <div class="columns-container">
+                <div class="product-column">
+                    {col1_html}
+                </div>
+                <div class="product-column">
+                    {col2_html}
+                </div>
+            </div>
+    """
+
+  if confetti_enabled:
+    html_template += """
+        <script>
+            setTimeout(function() {
+                confetti({ particleCount: 90, spread: 90, origin: { x: 0.5, y: 0.25 } });
+                setTimeout(function() {
+                    confetti({ particleCount: 110, spread: 110, origin: { x: 0.5, y: 0.25 } });
+                }, 3000);
+            }, 300);
+        </script>
+        """
+
+  if cheer_enabled:
+    html_template += """
+        <script>
+            function playCheer() {
+                const audio = document.getElementById('cheerAudio');
+                if(audio) {
+                    audio.volume = 0.5;
+                    audio.play().then(() => {
+                        window.removeEventListener('click', playCheer);
+                        window.removeEventListener('touchstart', playCheer);
+                    }).catch(function(error) {
+                        console.log("Audio play blocked:", error.message);
+                    });
+                }
+            }
+
+            window.addEventListener('DOMContentLoaded', function() {
+                playCheer();
+            });
+
+            window.addEventListener('click', playCheer, { once: true });
+            window.addEventListener('touchstart', playCheer, { once: true });
+        </script>
+        """
+
+  html_template += '<div class="watermark">tosoun 2026</div></div></div>'
+  components.html(html_template, height=1400, scrolling=True)
+
+except Exception as e:
+  st.error(f"Σφάλμα: {e}")
