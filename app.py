@@ -271,7 +271,7 @@ with col_admin:
 
 with col_input_space:
   user_typed_name = st.text_input(
-      "👤 Όνομα Χρήστη / Γκρουπ:",
+      "👤 ΟΝΟΜΑ ΧΡΗΣΤΗ",
       value=st.session_state.user_typed_name,
       placeholder="ΣΚΙΑΔΟΠΟΥΛΟΣ"
   ).strip()
