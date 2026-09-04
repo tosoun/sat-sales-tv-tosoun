@@ -415,12 +415,18 @@ def process_sales_df(df, file_name=""):
 
   store_col = df.columns[0]
 
+  # Ρύθμιση στήλης ανάλογα με το αρχείο (π.χ. 3η στήλη index 2 για το 2ο αρχείο, ή 4η στήλη index 3 για προσφορές αν χρειάζεται)
   is_prosfores = (
       "προσφορ" in custom_title.lower()
       or "προσφορ" in file_name.lower()
-      or "προσφορ" in excel_path_1.lower() and file_name == excel_path_1
+      or "προσφορ" in excel_path_1.lower()
+      and file_name == excel_path_1
   )
-  target_col_idx = 1 if is_prosfores else 2
+  
+  if is_prosfores:
+    target_col_idx = 1  # Ή 3 αν θες τη στήλη D
+  else:
+    target_col_idx = 1  # 2η στήλη (index 1) για τις ποσότητες στο 2ο αρχείο
 
   if len(df.columns) > target_col_idx:
     value_col = df.columns[target_col_idx]
@@ -918,9 +924,9 @@ try:
     
     .poll-item {{ background: rgba(255, 255, 255, 0.08); padding: 12px 18px; border-radius: 12px; margin-bottom: 12px; text-align: left; border: 1px solid rgba(255, 255, 255, 0.1); }}
     
-    .poll-info {{ display: flex; justify-content: space-between; align-items: flex-start; color: white; font-size: 15px; font-weight: 600; margin-bottom: 8px; gap: 10px; }}
-    .poll-info span:first-child {{ word-break: break-word; overflow-wrap: break-word; flex: 1; }}
-    .poll-info span:last-child {{ white-space: nowrap; text-align: right; flex-shrink: 0; }}
+    .poll-info {{ display: flex; justify-content: space-between; align-items: center; color: white; font-size: 14px; font-weight: 600; margin-bottom: 8px; gap: 8px; }}
+    .poll-info span:first-child {{ overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }}
+    .poll-info span:last-child {{ white-space: nowrap; text-align: right; flex-shrink: 0; min-width: 100px; }}
     
     .win-number-first {{ color: #2ecc71; animation: blink-number-slow 2.5s infinite ease-in-out; font-weight: 700; }}
 
