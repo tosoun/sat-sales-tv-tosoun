@@ -371,14 +371,11 @@ def clean_quantity_value(val):
 
 
 def format_smart_num(num):
-  if num == int(num):
-    return f"{int(num):,}".replace(",", ".")
-  else:
-    parts = f"{num:.3f}".split(".")
-    int_part = int(parts[0])
-    dec_part = parts[1].rstrip("0")
-    formatted_int = f"{int_part:,}".replace(",", ".")
-    return f"{formatted_int},{dec_part}"
+  parts = f"{num:.1f}".split(".")
+  int_part = int(parts[0])
+  dec_part = parts[1]
+  formatted_int = f"{int_part:,}".replace(",", ".")
+  return f"{formatted_int},{dec_part}"
 
 
 def process_sales_df(df, file_name=""):
@@ -415,7 +412,6 @@ def process_sales_df(df, file_name=""):
 
   store_col = df.columns[0]
 
-  # Ρύθμιση στήλης ανάλογα με το αρχείο (π.χ. 3η στήλη index 2 για το 2ο αρχείο, ή 4η στήλη index 3 για προσφορές αν χρειάζεται)
   is_prosfores = (
       "προσφορ" in custom_title.lower()
       or "προσφορ" in file_name.lower()
@@ -424,9 +420,9 @@ def process_sales_df(df, file_name=""):
   )
   
   if is_prosfores:
-    target_col_idx = 1  # Ή 3 αν θες τη στήλη D
+    target_col_idx = 1
   else:
-    target_col_idx = 1  # 2η στήλη (index 1) για τις ποσότητες στο 2ο αρχείο
+    target_col_idx = 1
 
   if len(df.columns) > target_col_idx:
     value_col = df.columns[target_col_idx]
@@ -1126,3 +1122,4 @@ try:
 
 except Exception as e:
   st.error(f"Σφάλμα: {e}")
+  
