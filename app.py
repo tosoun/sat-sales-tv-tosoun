@@ -418,7 +418,7 @@ def process_sales_df(df, file_name=""):
       or "προσφορ" in excel_path_1.lower()
       and file_name == excel_path_1
   )
-  
+
   if is_prosfores:
     target_col_idx = 1
   else:
@@ -1122,4 +1122,3 @@ try:
 
 except Exception as e:
   st.error(f"Σφάλμα: {e}")
-  
