@@ -732,7 +732,7 @@ try:
     
     <div class="main-container">
         <div class="banner-container">
-            <div style="position: absolute; top: 4px; right: 10px; color: rgba(255, 255, 255, 0.35); font-weight: 800; font-size: 9px; letter-spacing: 1.5px; z-index: 9999; pointer-events: none; text-transform: uppercase;">TOSOUN 2026</div>
+            <div style="position: absolute; top: 6px; left: 12px; color: rgba(255, 255, 255, 0.25); font-weight: 800; font-size: 10px; letter-spacing: 1.5px; z-index: 9999; pointer-events: none; text-transform: uppercase;">TOSOUN 2026</div>
             <img src="{img_src}" class="banner-img" alt="banner">
             <div class="rotate-hint-overlay">
                 <span class="phone-icon-wrap">📱</span>
