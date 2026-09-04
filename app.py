@@ -137,7 +137,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-col_admin, col_input_space, col_empty_space = st.columns([3.5, 2.5, 3])
+col_admin, col_input_space = st.columns([4, 4])
 
 with col_admin:
     with st.expander("⚙️ Διαχείριση Αρχείων (Admin 2026)"):
@@ -331,12 +331,6 @@ with col_input_space:
         format_func=lambda x: x.upper(),
     )
     active_filter = selected_region.lower()
-
-with col_empty_space:
-    st.markdown(
-        "<div style='text-align: right; color: #ffffff; font-weight: 800; font-size: 15px; letter-spacing: 1px; padding-right: 15px;'>TOSOUN 2026</div>",
-        unsafe_allow_html=True,
-    )
 
 file_time_str = "--:--"
 if os.path.exists(time_path):
@@ -737,6 +731,7 @@ try:
     </style>
     
     <div class="main-container">
+        <div style="position: absolute; top: 4px; right: 10px; color: rgba(255, 255, 255, 0.12); font-weight: 800; font-size: 10px; letter-spacing: 1px; z-index: 99; pointer-events: none; text-transform: uppercase;">TOSOUN 2026</div>
         <div class="banner-container">
             <img src="{img_src}" class="banner-img" alt="banner">
             <div class="rotate-hint-overlay">
