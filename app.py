@@ -332,6 +332,12 @@ with col_input_space:
     )
     active_filter = selected_region.lower()
 
+with col_empty_space:
+    st.markdown(
+        "<div style='text-align: right; color: #ffffff; font-weight: 800; font-size: 15px; letter-spacing: 1px; padding-right: 15px;'>TOSOUN 2026</div>",
+        unsafe_allow_html=True,
+    )
+
 file_time_str = "--:--"
 if os.path.exists(time_path):
     try:
