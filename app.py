@@ -381,7 +381,7 @@ def format_smart_num(num):
     return f"{formatted_int},{dec_part}"
 
 
-def process_sales_df(df):
+def process_sales_df(df, is_prosfores=False):
   if df.empty:
     return "ΕΙΔΟΣ", pd.DataFrame(), 0.0, 1.0
 
@@ -414,7 +414,13 @@ def process_sales_df(df):
   df = df.iloc[header_row_idx + 1 :].reset_index(drop=True)
 
   store_col = df.columns[0]
-  value_col = df.columns[1] if len(df.columns) > 1 else df.columns[0]
+
+  # Αν είναι Πωλήσεις Ειδών Προσφορών παίρνουμε τη 2η στήλη (index 1), αλλιώς (Πωλήσεις Ειδών) την 3η στήλη (index 2)
+  target_col_idx = 1 if is_prosfores else 2
+  if len(df.columns) > target_col_idx:
+    value_col = df.columns[target_col_idx]
+  else:
+    value_col = df.columns[1] if len(df.columns) > 1 else df.columns[0]
 
   df_selected = df[[store_col, value_col]].copy()
   df_selected.columns = ["Κατάστημα", "Ποσότητα"]
@@ -755,11 +761,13 @@ GROUPS_MAPPING = {
     "πουτογλιδης": POUTOGLIDIS_KEYWORDS,
 }
 
+# Αρχείο 1: Πωλήσεις Ειδών Προσφορών -> Παίρνει τη 2η στήλη (is_prosfores=True)
 title_1, df_stores_1, _, max_sales_1 = process_sales_df(
-    load_data(excel_path_1)
+    load_data(excel_path_1), is_prosfores=True
 )
+# Αρχείο 2: Κανονικές Πωλήσεις Ειδών -> Παίρνει την 3η στήλη (is_prosfores=False)
 title_2, df_stores_2, _, max_sales_2 = process_sales_df(
-    load_data(excel_path_2)
+    load_data(excel_path_2), is_prosfores=False
 )
 
 
