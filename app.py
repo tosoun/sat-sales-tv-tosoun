@@ -381,7 +381,7 @@ def format_smart_num(num):
     return f"{formatted_int},{dec_part}"
 
 
-def process_sales_df(df, is_prosfores=False):
+def process_sales_df(df, file_name=""):
   if df.empty:
     return "ΕΙΔΟΣ", pd.DataFrame(), 0.0, 1.0
 
@@ -415,8 +415,13 @@ def process_sales_df(df, is_prosfores=False):
 
   store_col = df.columns[0]
 
-  # Αν είναι Πωλήσεις Ειδών Προσφορών παίρνουμε τη 2η στήλη (index 1), αλλιώς (Πωλήσεις Ειδών) την 3η στήλη (index 2)
+  is_prosfores = (
+      "προσφορ" in custom_title.lower()
+      or "προσφορ" in file_name.lower()
+      or "προσφορ" in excel_path_1.lower() and file_name == excel_path_1
+  )
   target_col_idx = 1 if is_prosfores else 2
+
   if len(df.columns) > target_col_idx:
     value_col = df.columns[target_col_idx]
   else:
@@ -761,13 +766,11 @@ GROUPS_MAPPING = {
     "πουτογλιδης": POUTOGLIDIS_KEYWORDS,
 }
 
-# Αρχείο 1: Πωλήσεις Ειδών Προσφορών -> Παίρνει τη 2η στήλη (is_prosfores=True)
 title_1, df_stores_1, _, max_sales_1 = process_sales_df(
-    load_data(excel_path_1), is_prosfores=True
+    load_data(excel_path_1), file_name=excel_path_1
 )
-# Αρχείο 2: Κανονικές Πωλήσεις Ειδών -> Παίρνει την 3η στήλη (is_prosfores=False)
 title_2, df_stores_2, _, max_sales_2 = process_sales_df(
-    load_data(excel_path_2), is_prosfores=False
+    load_data(excel_path_2), file_name=excel_path_2
 )
 
 
