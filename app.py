@@ -21,12 +21,12 @@ st.markdown(
     [data-testid="stDecoration"] {visibility: hidden; display: none;}
     div[data-baseweb="select"] > div, .stRadio label p { color: white !important; }
     .block-container { padding: 0rem 0.5rem !important; max-width: 100% !important; }
-    
+
     div[data-testid="stHorizontalBlock"] {
         align-items: center !important;
     }
     </style>
-    
+
     <script>
     function removeManageButton() {
         const doc = window.parent.document;
@@ -36,7 +36,7 @@ st.markdown(
                 btn.style.display = 'none';
             }
         });
-        
+
         const pwdInputs = doc.querySelectorAll('input[type="password"]');
         pwdInputs.forEach(input => {
             input.setAttribute('autocomplete', 'username');
@@ -44,6 +44,7 @@ st.markdown(
             input.removeAttribute('name');
         });
     }
+
     setInterval(removeManageButton, 300);
     </script>
 """,
@@ -63,15 +64,19 @@ def upload_to_github(
 ):
     if not token or not repo_name:
         return False
+
     try:
         url = f"https://api.github.com/repos/{repo_name}/contents/{file_path}"
+
         headers = {
             "Authorization": f"token {token}",
             "Accept": "application/vnd.github.v3+json",
         }
 
         r = requests.get(url, headers=headers)
+
         sha = None
+
         if r.status_code == 200:
             sha = r.json().get("sha")
 
@@ -80,19 +85,31 @@ def upload_to_github(
 
         with open(file_path, "rb") as f:
             content_bytes = f.read()
+
         content_encoded = base64.b64encode(content_bytes).decode("utf-8")
 
-        data = {"message": commit_message, "content": content_encoded}
+        data = {
+            "message": commit_message,
+            "content": content_encoded
+        }
+
         if sha:
             data["sha"] = sha
 
-        put_r = requests.put(url, headers=headers, data=json.dumps(data))
+        put_r = requests.put(
+            url,
+            headers=headers,
+            data=json.dumps(data)
+        )
+
         return put_r.status_code in [200, 201]
+
     except Exception:
         return False
 
 
 confetti_enabled = True
+
 if os.path.exists(confetti_path):
     try:
         with open(confetti_path, "r", encoding="utf-8") as cf:
@@ -100,7 +117,9 @@ if os.path.exists(confetti_path):
     except Exception:
         pass
 
+
 cheer_enabled = True
+
 if os.path.exists(cheer_path):
     try:
         with open(cheer_path, "r", encoding="utf-8") as ch:
@@ -108,19 +127,26 @@ if os.path.exists(cheer_path):
     except Exception:
         pass
 
+
 if "selected_region" not in st.session_state:
     st.session_state.selected_region = "τομεας 3"
+
 
 st.markdown(
     """
     <style>
-    .row-widget.stSelectbox { margin-bottom: 0px !important; }
+
+    .row-widget.stSelectbox {
+        margin-bottom: 0px !important;
+    }
+
     div[data-testid="stSelectbox"] {
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
         gap: 15px !important;
     }
+
     div[data-testid="stSelectbox"] label {
         font-size: 13px !important;
         font-weight: 700 !important;
@@ -129,18 +155,24 @@ st.markdown(
         white-space: nowrap !important;
         min-width: fit-content !important;
     }
+
     div[data-testid="stSelectbox"] div[data-baseweb="select"] {
         flex-grow: 1 !important;
     }
+
     </style>
     """,
     unsafe_allow_html=True,
 )
 
+
 col_admin, col_input_space = st.columns([4, 4])
 
+
 with col_admin:
+
     with st.expander("⚙️ Διαχείριση Αρχείων (Admin 2026)"):
+
         password = st.text_input(
             "Εισάγετε κωδικό διαχειριστή:",
             key="admin_pass",
@@ -151,75 +183,145 @@ with col_admin:
         components.html(
             """
             <script>
+
             const doc = window.parent.document;
             const inputs = doc.querySelectorAll('input');
+
             inputs.forEach(input => {
-                if (input.getAttribute('aria-label') && input.getAttribute('aria-label').includes('κωδικό')) {
+
+                if (
+                    input.getAttribute('aria-label') &&
+                    input.getAttribute('aria-label').includes('κωδικό')
+                ) {
+
                     input.setAttribute('autocomplete', 'off');
                     input.setAttribute('data-form-type', 'other');
                     input.removeAttribute('name');
+
                 }
+
             });
+
             </script>
-        """,
+            """,
             height=0,
         )
 
+
         if password == "2845":
+
             st.markdown("---")
+
             col_up1, col_up2 = st.columns(2)
 
+
             with col_up1:
+
                 uploaded_file_1 = st.file_uploader(
                     "Αρχείο 1 (Πωλήσεις Ειδών Προσφορών):",
                     type=["xlsx"],
                     key="up1",
                 )
+
+
             with col_up2:
+
                 uploaded_file_2 = st.file_uploader(
                     "Αρχείο 2 (S3 - Πωλήσεις Ειδών-6):",
                     type=["xlsx"],
                     key="up2",
                 )
 
-            st.markdown("---")
-            time_options = []
-            for hour in range(8, 23):
-                for minute in (0, 30):
-                    time_options.append(datetime.time(hour, minute))
-            time_options.append(datetime.time(22, 0))
-            time_options = sorted(list(set(time_options)))
 
-            now = datetime.datetime.now() - datetime.timedelta(hours=1)
-            default_minute = 0 if now.minute < 30 else 30
-            default_hour = max(8, min(22, now.hour))
-            default_time = datetime.time(default_hour, default_minute)
+            st.markdown("---")
+
+
+            time_options = []
+
+
+            for hour in range(8, 23):
+
+                for minute in (0, 30):
+
+                    time_options.append(
+                        datetime.time(hour, minute)
+                    )
+
+
+            time_options.append(
+                datetime.time(22, 0)
+            )
+
+
+            time_options = sorted(
+                list(set(time_options))
+            )
+
+
+            now = (
+                datetime.datetime.now()
+                - datetime.timedelta(hours=1)
+            )
+
+
+            default_minute = (
+                0 if now.minute < 30 else 30
+            )
+
+
+            default_hour = max(
+                8,
+                min(22, now.hour)
+            )
+
+
+            default_time = datetime.time(
+                default_hour,
+                default_minute
+            )
+
 
             if "selected_half_hour" not in st.session_state:
+
                 st.session_state.selected_half_hour = default_time
 
+
             if "selected_report_date" not in st.session_state:
+
                 st.session_state.selected_report_date = datetime.date.today()
 
+
             selected_date = st.date_input(
-                "Ημερομηνία αναφοράς:", value=st.session_state.selected_report_date
+                "Ημερομηνία αναφοράς:",
+                value=st.session_state.selected_report_date
             )
+
+
             st.session_state.selected_report_date = selected_date
+
 
             selected_time = st.selectbox(
                 "Ώρα αναφοράς:",
                 options=time_options,
                 index=(
-                    time_options.index(st.session_state.selected_half_hour)
+                    time_options.index(
+                        st.session_state.selected_half_hour
+                    )
                     if st.session_state.selected_half_hour in time_options
                     else 0
                 ),
                 format_func=lambda x: x.strftime("%H:%M"),
             )
+
+
             st.session_state.selected_half_hour = selected_time
 
+
             col_confetti, col_cheer = st.columns(2)
+
+
             with col_confetti:
+
                 confetti_choice = st.radio(
                     "Κομφετί:",
                     ["ΝΑΙ", "ΟΧΙ"],
@@ -228,7 +330,9 @@ with col_admin:
                     key="conf_radio",
                 )
 
+
             with col_cheer:
+
                 cheer_choice = st.radio(
                     "Χειροκρότημα:",
                     ["ΝΑΙ", "ΟΧΙ"],
@@ -237,36 +341,107 @@ with col_admin:
                     key="cheer_radio",
                 )
 
-            if uploaded_file_1 is not None and uploaded_file_2 is not None:
-                upload_signature = f"{uploaded_file_1.name}_{uploaded_file_2.name}_{uploaded_file_1.size}_{uploaded_file_2.size}"
 
-                gh_token, repo_name = None, None
+            if (
+                uploaded_file_1 is not None
+                and uploaded_file_2 is not None
+            ):
+
+                upload_signature = (
+                    f"{uploaded_file_1.name}_"
+                    f"{uploaded_file_2.name}_"
+                    f"{uploaded_file_1.size}_"
+                    f"{uploaded_file_2.size}"
+                )
+
+
+                gh_token = None
+                repo_name = None
+
+
                 try:
-                    if hasattr(st, "secrets") and "GITHUB_TOKEN" in st.secrets:
+
+                    if (
+                        hasattr(st, "secrets")
+                        and "GITHUB_TOKEN" in st.secrets
+                    ):
+
                         gh_token = st.secrets["GITHUB_TOKEN"]
-                    if hasattr(st, "secrets") and "REPO_NAME" in st.secrets:
+
+
+                    if (
+                        hasattr(st, "secrets")
+                        and "REPO_NAME" in st.secrets
+                    ):
+
                         repo_name = st.secrets["REPO_NAME"]
+
+
                 except Exception:
+
                     pass
+
 
                 current_time_str = selected_time.strftime("%H:%M")
                 current_date_str = selected_date.strftime("%d/%m/%Y")
 
-                with open(time_path, "w", encoding="utf-8") as tf:
+
+                with open(
+                    time_path,
+                    "w",
+                    encoding="utf-8"
+                ) as tf:
+
                     tf.write(current_time_str)
 
-                with open(date_path, "w", encoding="utf-8") as df_file:
+
+                with open(
+                    date_path,
+                    "w",
+                    encoding="utf-8"
+                ) as df_file:
+
                     df_file.write(current_date_str)
 
-                with open(confetti_path, "w", encoding="utf-8") as cf:
-                    cf.write(str(confetti_choice == "ΝΑΙ"))
 
-                with open(cheer_path, "w", encoding="utf-8") as ch:
-                    ch.write(str(cheer_choice == "ΝΑΙ"))
+                with open(
+                    confetti_path,
+                    "w",
+                    encoding="utf-8"
+                ) as cf:
 
-                with open(excel_path_1, "wb") as f:
-                    f.write(uploaded_file_1.getbuffer())
+                    cf.write(
+                        str(
+                            confetti_choice == "ΝΑΙ"
+                        )
+                    )
+
+
+                with open(
+                    cheer_path,
+                    "w",
+                    encoding="utf-8"
+                ) as ch:
+
+                    ch.write(
+                        str(
+                            cheer_choice == "ΝΑΙ"
+                        )
+                    )
+
+
+                with open(
+                    excel_path_1,
+                    "wb"
+                ) as f:
+
+                    f.write(
+                        uploaded_file_1.getbuffer()
+                    )
+
+
                 if gh_token and repo_name:
+
                     upload_to_github(
                         excel_path_1,
                         repo_name,
@@ -274,9 +449,19 @@ with col_admin:
                         "Auto-update sales file 1",
                     )
 
-                with open(excel_path_2, "wb") as f:
-                    f.write(uploaded_file_2.getbuffer())
+
+                with open(
+                    excel_path_2,
+                    "wb"
+                ) as f:
+
+                    f.write(
+                        uploaded_file_2.getbuffer()
+                    )
+
+
                 if gh_token and repo_name:
+
                     upload_to_github(
                         excel_path_2,
                         repo_name,
@@ -284,34 +469,56 @@ with col_admin:
                         "Auto-update sales file 2",
                     )
 
+
                 if gh_token and repo_name:
+
                     upload_to_github(
-                        time_path, repo_name, gh_token, "Auto-update upload time"
-                    )
-                    upload_to_github(
-                        date_path, repo_name, gh_token, "Auto-update upload date"
+                        time_path,
+                        repo_name,
+                        gh_token,
+                        "Auto-update upload time",
                     )
 
+
+                    upload_to_github(
+                        date_path,
+                        repo_name,
+                        gh_token,
+                        "Auto-update upload date",
+                    )
+
+
                 st.session_state["last_uploaded_sig"] = upload_signature
+
+
                 st.success(
                     "Και τα δύο αρχεία ανέβηκαν αυτόματα και συγχρονίστηκαν επιτυχώς!"
                 )
 
+
                 components.html(
                     """
-                        <script>
-                            setTimeout(function() {
-                                window.parent.location.reload();
-                            }, 1500);
-                        </script>
+                    <script>
+
+                    setTimeout(function() {
+
+                        window.parent.location.reload();
+
+                    }, 1500);
+
+                    </script>
                     """,
                     height=0,
                 )
 
+
         elif password:
+
             st.error("Λάθος κωδικός!")
 
+
 with col_input_space:
+
     region_options = [
         "τομεας 3",
         "χαραλαμπιδης",
@@ -324,76 +531,173 @@ with col_input_space:
         "μπουτσκος",
         "πουτογλιδης",
     ]
+
+
     selected_region = st.selectbox(
         "📍 ΠΕΡΙΦΕΡΕΙΑ",
         options=region_options,
         index=0,
         format_func=lambda x: x.upper(),
     )
+
+
     active_filter = selected_region.lower()
 
+
 file_time_str = "--:--"
+
+
 if os.path.exists(time_path):
+
     try:
-        with open(time_path, "r", encoding="utf-8") as tf:
+
+        with open(
+            time_path,
+            "r",
+            encoding="utf-8"
+        ) as tf:
+
             file_time_str = tf.read().strip()
+
     except Exception:
+
         pass
 
+
 file_date_str = datetime.date.today().strftime("%d/%m/%Y")
+
+
 if os.path.exists(date_path):
+
     try:
-        with open(date_path, "r", encoding="utf-8") as df_file:
+
+        with open(
+            date_path,
+            "r",
+            encoding="utf-8"
+        ) as df_file:
+
             file_date_str = df_file.read().strip()
+
     except Exception:
+
         pass
 
 
 def load_data(path):
+
     if os.path.exists(path):
+
         try:
-            df = pd.read_excel(path, header=None)
+
+            df = pd.read_excel(
+                path,
+                header=None
+            )
+
             return df
+
         except Exception:
+
             return pd.DataFrame()
+
     return pd.DataFrame()
 
 
 def clean_quantity_value(val):
+
     if pd.isna(val):
+
         return 0.0
-    if isinstance(val, (int, float)):
+
+
+    if isinstance(
+        val,
+        (int, float)
+    ):
+
         return float(val)
+
+
     s_val = str(val).strip()
+
+
     if "," in s_val and "." in s_val:
-        s_val = s_val.replace(".", "").replace(",", ".")
+
+        s_val = (
+            s_val
+            .replace(".", "")
+            .replace(",", ".")
+        )
+
+
     elif "," in s_val:
+
         s_val = s_val.replace(",", ".")
+
+
     try:
+
         return float(s_val)
+
     except Exception:
+
         return 0.0
 
 
 def format_smart_num(num):
+
     if num == int(num):
+
         return f"{int(num):,}".replace(",", ".")
+
     else:
+
         parts = f"{num:.3f}".split(".")
+
         int_part = int(parts[0])
+
         dec_part = parts[1].rstrip("0")
-        formatted_int = f"{int_part:,}".replace(",", ".")
+
+        formatted_int = (
+            f"{int_part:,}"
+            .replace(",", ".")
+        )
+
         return f"{formatted_int},{dec_part}"
 
 
-def process_sales_df(df, file_name=""):
+def process_sales_df(
+    df,
+    file_name=""
+):
+
     if df.empty:
-        return "ΕΙΔΟΣ", pd.DataFrame(), 0.0, 1.0
+
+        return (
+            "ΕΙΔΟΣ",
+            pd.DataFrame(),
+            0.0,
+            1.0
+        )
+
 
     custom_title = "ΕΙΔΟΣ"
-    for i in range(min(5, len(df))):
-        for j in range(len(df.columns)):
-            val = str(df.iloc[i, j]).strip()
+
+
+    for i in range(
+        min(5, len(df))
+    ):
+
+        for j in range(
+            len(df.columns)
+        ):
+
+            val = str(
+                df.iloc[i, j]
+            ).strip()
+
+
             if (
                 val
                 and val.lower() != "nan"
@@ -403,139 +707,352 @@ def process_sales_df(df, file_name=""):
                 and not "αξια" in val.lower()
                 and not "κοστος" in val.lower()
             ):
+
                 custom_title = val
+
                 break
+
+
         if custom_title != "ΕΙΔΟΣ":
+
             break
+
 
     header_row_idx = 0
-    for i in range(min(5, len(df))):
-        row_str = str(df.iloc[i].values).lower()
-        if "κατάστημα" in row_str or "καταστημα" in row_str:
+
+
+    for i in range(
+        min(5, len(df))
+    ):
+
+        row_str = str(
+            df.iloc[i].values
+        ).lower()
+
+
+        if (
+            "κατάστημα" in row_str
+            or "καταστημα" in row_str
+        ):
+
             header_row_idx = i
+
             break
 
-    df.columns = df.iloc[header_row_idx].astype(str).str.strip()
-    df = df.iloc[header_row_idx + 1 :].reset_index(drop=True)
+
+    df.columns = (
+        df.iloc[header_row_idx]
+        .astype(str)
+        .str.strip()
+    )
+
+
+    df = (
+        df.iloc[header_row_idx + 1:]
+        .reset_index(drop=True)
+    )
+
 
     store_col = df.columns[0]
+
 
     is_prosfores = (
         "προσφορ" in custom_title.lower()
         or "προσφορ" in file_name.lower()
-        or ("προσφορ" in excel_path_1.lower() and file_name == excel_path_1)
+        or (
+            "προσφορ" in excel_path_1.lower()
+            and file_name == excel_path_1
+        )
     )
 
-    target_col_idx = 1 if is_prosfores else 1
+
+    target_col_idx = (
+        1 if is_prosfores else 1
+    )
+
 
     if len(df.columns) > target_col_idx:
+
         value_col = df.columns[target_col_idx]
+
     else:
-        value_col = df.columns[1] if len(df.columns) > 1 else df.columns[0]
 
-    df_selected = df[[store_col, value_col]].copy()
-    df_selected.columns = ["Κατάστημα", "Ποσότητα"]
+        value_col = (
+            df.columns[1]
+            if len(df.columns) > 1
+            else df.columns[0]
+        )
 
-    df_selected = df_selected.dropna(subset=["Κατάστημα", "Ποσότητα"])
-    df_selected["Κατάστημα"] = df_selected["Κατάστημα"].astype(str).str.strip()
+
+    df_selected = df[
+        [
+            store_col,
+            value_col
+        ]
+    ].copy()
+
+
+    df_selected.columns = [
+        "Κατάστημα",
+        "Ποσότητα"
+    ]
+
+
+    df_selected = df_selected.dropna(
+        subset=[
+            "Κατάστημα",
+            "Ποσότητα"
+        ]
+    )
+
+
+    df_selected["Κατάστημα"] = (
+        df_selected["Κατάστημα"]
+        .astype(str)
+        .str.strip()
+    )
+
 
     df_selected = df_selected[
         ~df_selected["Κατάστημα"].str.contains(
-            "Κατάστημα|ΠΟΣΟΤ|ΠΑΡΑΔΕΙΓΜΑ|NaN", case=False, na=False
+            "Κατάστημα|ΠΟΣΟΤ|ΠΑΡΑΔΕΙΓΜΑ|NaN",
+            case=False,
+            na=False
         )
     ]
+
+
     df_clean = df_selected[
         ~df_selected["Κατάστημα"].str.contains(
-            "Total|Συνολο|ΣΥΝΟΛΟ", case=False, na=False
+            "Total|Συνολο|ΣΥΝΟΛΟ",
+            case=False,
+            na=False
         )
     ].copy()
 
-    df_clean["Num_Sales"] = df_clean["Ποσότητα"].apply(clean_quantity_value)
+
+    df_clean["Num_Sales"] = (
+        df_clean["Ποσότητα"]
+        .apply(clean_quantity_value)
+    )
+
+
     df_stores = (
-        df_clean.sort_values(by="Num_Sales", ascending=False)
+        df_clean
+        .sort_values(
+            by="Num_Sales",
+            ascending=False
+        )
         .reset_index(drop=True)
     )
-    total_sum = df_stores["Num_Sales"].sum()
-    max_sales = df_stores["Num_Sales"].max() if not df_stores.empty else 1.0
 
-    return custom_title, df_stores, total_sum, max_sales
+
+    total_sum = (
+        df_stores["Num_Sales"]
+        .sum()
+    )
+
+
+    max_sales = (
+        df_stores["Num_Sales"].max()
+        if not df_stores.empty
+        else 1.0
+    )
+
+
+    return (
+        custom_title,
+        df_stores,
+        total_sum,
+        max_sales
+    )
 
 
 MITROULIS_KEYWORDS = [
-    "301", "302", "309", "486", "304", "352", "308", "353", "354", "355",
-    "356", "366", "374", "αιανη", "πλ.ελευθεριας", "πλ.λασσανη", "σιατιστα",
-    "25ης μαρτιου", "ελ.βενιζελου", "ιωαννη αρθη", "κοζανης και γρεβενων",
-    "χλοη", "δισπυλο", "αθ. διακου", "γραμμου", "μανιακοι"
+    "301", "302", "309", "486", "304",
+    "352", "308", "353", "354", "355",
+    "356", "366", "374", "αιανη",
+    "πλ.ελευθεριας", "πλ.λασσανη",
+    "σιατιστα", "25ης μαρτιου",
+    "ελ.βενιζελου", "ιωαννη αρθη",
+    "κοζανης και γρεβενων",
+    "χλοη", "δισπυλο",
+    "αθ. διακου", "γραμμου",
+    "μανιακοι"
 ]
 
+
 PONOPOULOS_KEYWORDS = [
-    "231", "232", "233", "373", "237", "235", "372", "236", "483", "161",
-    "166", "384", "234", "σβορωνου", "υψηλαντου", "περδικα", "εγνατιας",
-    "πλαταμωνας", "λεπτοκαρυα", "κορινος", "αγ.νικολαιου", "λιτοχωρο",
-    "αντιγονου", "κατερινη", "αριστοτελους", "π.τσαλδαρη", "19ης μαΐου",
+    "231", "232", "233", "373",
+    "237", "235", "372", "236",
+    "483", "161", "166", "384",
+    "234", "σβορωνου", "υψηλαντου",
+    "περδικα", "εγνατιας",
+    "πλαταμωνας", "λεπτοκαρυα",
+    "κορινος", "αγ.νικολαιου",
+    "λιτοχωρο", "αντιγονου",
+    "κατερινη", "αριστοτελους",
+    "π.τσαλδαρη", "19ης μαΐου",
     "χατζογλου"
 ]
 
+
 CHARALAMPIDIS_KEYWORDS = [
-    "211", "201", "347", "212", "239", "219", "220", "222", "223", "240",
-    "241", "493", "δ.γεωργιαδου", "λαρισα", "νικηταρα", "ιωαννινων",
-    "23ης οκτωβριου", "χατζημιχαλη", "φιλιππουπολη", "θυατειρων",
-    "βενιζελου", "ν.ιωνια", "βολος", "αχιλλοπουλου", "κασσαβετη",
-    "28ης οκτωβριου", "κουμουνδουρου", "μεταμορφωσεως", "αλεξανδρας", "σκιαθος"
+    "211", "201", "347", "212",
+    "239", "219", "220", "222",
+    "223", "240", "241", "493",
+    "δ.γεωργιαδου", "λαρισα",
+    "νικηταρα", "ιωαννινων",
+    "23ης οκτωβριου",
+    "χατζημιχαλη",
+    "φιλιππουπολη",
+    "θυατειρων",
+    "βενιζελου",
+    "ν.ιωνια",
+    "βολος",
+    "αχιλλοπουλου",
+    "κασσαβετη",
+    "28ης οκτωβριου",
+    "κουμουνδουρου",
+    "μεταμορφωσεως",
+    "αλεξανδρας",
+    "σκιαθος"
 ]
+
 
 PAPPAS_KEYWORDS = [
-    "210", "346", "202", "204", "206", "209", "205", "207", "208", "215",
-    "ελασσονα", "βυζαντιου", "λαρισης", "φαρσαλα", "αβερωφ", "καρδιτσα",
-    "καραϊσκακη", "σοφαδες", "κονδυλη", "τρικαλα", "δεληγιωργη", "ελευθεριος"
+    "210", "346", "202", "204",
+    "206", "209", "205", "207",
+    "208", "215", "ελασσονα",
+    "βυζαντιου", "λαρισης",
+    "φαρσαλα", "αβερωφ",
+    "καρδιτσα", "καραϊσκακη",
+    "σοφαδες", "κονδυλη",
+    "τρικαλα", "δεληγιωργη",
+    "ελευθεριος"
 ]
 
+
 PATSIS_KEYWORDS = [
-    "198", "225", "226", "316", "317", "381", "228", "229", "224",
-    "315", "359", "378", "399", "444", "γκουρας", "νικοπολεως", "ιωαννινα",
-    "γ.παπανδρεου", "κατω νεοχωροπουλο", "μαρικας κοτοπουλη", "ριζαριο",
-    "λεωφ. δημοκρατιας", "καρδαμιτσια", "κοραη", "κ.παλαιολογου", "ανατολη",
-    "καρυωτακη", "λεωφ. ειρηνης", "πρεβεζα", "πλ. κιλκις", "ανεξαρτησιας",
-    "αρτα", "26ο χλμ", "λουρος", "ηγουμενιτσα", "θεσπρωτιας", "παραμυθια",
+    "198", "225", "226", "316",
+    "317", "381", "228", "229",
+    "224", "315", "359", "378",
+    "399", "444",
+    "γκουρας",
+    "νικοπολεως",
+    "ιωαννινα",
+    "γ.παπανδρεου",
+    "κατω νεοχωροπουλο",
+    "μαρικας κοτοπουλη",
+    "ριζαριο",
+    "λεωφ. δημοκρατιας",
+    "καρδαμιτσια",
+    "κοραη",
+    "κ.παλαιολογου",
+    "ανατολη",
+    "καρυωτακη",
+    "λεωφ. ειρηνης",
+    "πρεβεζα",
+    "πλ. κιλκις",
+    "ανεξαρτησιας",
+    "αρτα",
+    "26ο χλμ",
+    "λουρος",
+    "ηγουμενιτσα",
+    "θεσπρωτιας",
+    "παραμυθια",
     "αγ.μαρινας"
 ]
 
+
 SKIADOPOULOS_KEYWORDS = [
-    "531", "539", "567", "537", "533", "525", "535", "534", "566", "540",
-    "565", "530", "528", "529", "532", "536", "538", "549", "κερκυρα",
-    "αχαραβη", "κασσιωπη", "σιδαρι", "καρουσαδες", "μαρκατο", "μαντουκι",
-    "αλυκες", "υπερ εθνικη οδος λευκιμμης", "λευκιμμη", "μωραιτικα",
-    "κομβος βρυωνη", "καστελλοι", "αλεπου", "σαροκο", "ιωαννου θεοτοκη",
-    "παλλαδα", "λαικη αγορα", "γερασιμου", "πινια", "νοσοκομειο", "σπηλια",
+    "531", "539", "567", "537",
+    "533", "525", "535", "534",
+    "566", "540", "565", "530",
+    "528", "529", "532", "536",
+    "538", "549",
+    "κερκυρα",
+    "αχαραβη",
+    "κασσιωπη",
+    "σιδαρι",
+    "καρουσαδες",
+    "μαρκατο",
+    "μαντουκι",
+    "αλυκες",
+    "υπερ εθνικη οδος λευκιμμης",
+    "λευκιμμη",
+    "μωραιτικα",
+    "κομβος βρυωνη",
+    "καστελλοι",
+    "αλεπου",
+    "σαροκο",
+    "ιωαννου θεοτοκη",
+    "παλλαδα",
+    "λαικη αγορα",
+    "γερασιμου",
+    "πινια",
+    "νοσοκομειο",
+    "σπηλια",
     "μητροπολιτου μεθοδιου"
 ]
 
+
 SAMOGLOU_KEYWORDS = [
-    "8907", "8912", "8913", "8918", "8920", "8926", "8932", "8933", "8938",
-    "8939", "8941", "8943", "καστορια χιλιοδενδρο", "καστορια αγ μηνα",
-    "καστορια μ αλεξανδρου", "κοζανη παυλου χαριση", "γρεβενα μακεδονομαχων",
-    "σερβια κοζανης κων καρπου", "βελβεντος κοζανης", "κοζανη οσε",
-    "γρεβενα θεωδ ζιακα", "γρεβενα καβαφη", "κοζανη φιλιππου"
+    "8907", "8912", "8913",
+    "8918", "8920", "8926",
+    "8932", "8933", "8938",
+    "8939", "8941", "8943",
+    "καστορια χιλιοδενδρο",
+    "καστορια αγ μηνα",
+    "καστορια μ αλεξανδρου",
+    "κοζανη παυλου χαριση",
+    "γρεβενα μακεδονομαχων",
+    "σερβια κοζανης κων καρπου",
+    "βελβεντος κοζανης",
+    "κοζανη οσε",
+    "γρεβενα θεωδ ζιακα",
+    "γρεβενα καβαφη",
+    "κοζανη φιλιππου"
 ]
 
+
 BOUTSKOS_KEYWORDS = [
-    "8267", "8273", "8317", "8318", "8334", "8402", "8408", "8448", "8568",
-    "8569", "8591", "δομοκος παπαφλεσσα", "πλαταμωνας κων καραμανλη",
-    "αλμυρος βολου ν μιχοπουλου", "θεσ σινδος παλαιολογου", "θεσ ολυμπου",
-    "λαρισα στρατηγου φραγκου", "σκοπελος 2 χλμ επο σκοπελου",
-    "λαρισα ιωαννινων", "βολος γιαννη δημου συ", "στεφανοβικειο βελεστινο συ",
+    "8267", "8273", "8317",
+    "8318", "8334", "8402",
+    "8408", "8448", "8568",
+    "8569", "8591",
+    "δομοκος παπαφλεσσα",
+    "πλαταμωνας κων καραμανλη",
+    "αλμυρος βολου ν μιχοπουλου",
+    "θεσ σινδος παλαιολογου",
+    "θεσ ολυμπου",
+    "λαρισα στρατηγου φραγκου",
+    "σκοπελος 2 χλμ επο σκοπελου",
+    "λαρισα ιωαννινων",
+    "βολος γιαννη δημου συ",
+    "στεφανοβικειο βελεστινο συ",
     "αγια λαρισης"
 ]
 
+
 POUTOGLIDIS_KEYWORDS = [
-    "8333", "8916", "8917", "8923", "8925", "8928", "8931", "8936", "8937",
-    "8940", "8945", "πτολεμαιδα 25 μαρτιου", "φλωρινα κρεσνας",
-    "φλωρινα καστρισιανακη", "φλωρινα δημ παπαθανασιου",
-    "κροκος κοζανης ιοακ λιουλια", "φιλιωτας μ αλεξανδρου",
-    "αμυνταιο 28 συνταγμπ πεζικου", "πτολεμαιδα χρυσ σμυρνης",
-    "πτολεμαιδα θεολογιδη", "φλωρινα cash & carry",
+    "8333", "8916", "8917",
+    "8923", "8925", "8928",
+    "8931", "8936", "8937",
+    "8940", "8945",
+    "πτολεμαιδα 25 μαρτιου",
+    "φλωρινα κρεσνας",
+    "φλωρινα καστρισιανακη",
+    "φλωρινα δημ παπαθανασιου",
+    "κροκος κοζανης ιοακ λιουλια",
+    "φιλιωτας μ αλεξανδρου",
+    "αμυνταιο 28 συνταγμπ πεζικου",
+    "πτολεμαιδα χρυσ σμυρνης",
+    "πτολεμαιδα θεολογιδη",
+    "φλωρινα cash & carry",
     "κοζανη κροκος cash & carry"
 ]
+
 
 TOMEAS_3_KEYWORDS = (
     MITROULIS_KEYWORDS
@@ -549,385 +1066,1211 @@ TOMEAS_3_KEYWORDS = (
     + POUTOGLIDIS_KEYWORDS
 )
 
+
 GROUPS_MAPPING = {
+
     "τομεας 3": TOMEAS_3_KEYWORDS,
+
     "τομέας 3": TOMEAS_3_KEYWORDS,
+
     "μητρουλης": MITROULIS_KEYWORDS,
+
     "πονοπουλος": PONOPOULOS_KEYWORDS,
+
     "χαραλαμπιδης": CHARALAMPIDIS_KEYWORDS,
+
     "παππας": PAPPAS_KEYWORDS,
+
     "πατσης": PATSIS_KEYWORDS,
+
     "σκιαδοπουλος": SKIADOPOULOS_KEYWORDS,
+
     "σαμογλου": SAMOGLOU_KEYWORDS,
+
     "μπουτσκος": BOUTSKOS_KEYWORDS,
+
     "πουτογλιδης": POUTOGLIDIS_KEYWORDS,
+
 }
 
+
 title_1, df_stores_1, _, max_sales_1 = process_sales_df(
-    load_data(excel_path_1), file_name=excel_path_1
+    load_data(excel_path_1),
+    file_name=excel_path_1
 )
+
+
 title_2, df_stores_2, _, max_sales_2 = process_sales_df(
-    load_data(excel_path_2), file_name=excel_path_2
+    load_data(excel_path_2),
+    file_name=excel_path_2
 )
 
 
 def filter_dataframe(df_stores):
+
     if df_stores.empty:
+
         return df_stores, 0.0
 
+
     filtered_df = df_stores.copy()
+
+
     if active_filter:
+
         if active_filter in GROUPS_MAPPING:
-            keywords = GROUPS_MAPPING[active_filter]
-            pattern = "|".join([r"\b" + kw + r"\b" for kw in keywords])
+
+            keywords = GROUPS_MAPPING[
+                active_filter
+            ]
+
+
+            pattern = "|".join(
+                [
+                    r"\b" + kw + r"\b"
+                    for kw in keywords
+                ]
+            )
+
+
             filtered_df = filtered_df[
                 filtered_df["Κατάστημα"]
                 .str.lower()
-                .str.contains(pattern, case=False, na=False, regex=True)
+                .str.contains(
+                    pattern,
+                    case=False,
+                    na=False,
+                    regex=True
+                )
             ]
+
+
         else:
+
             filtered_df = filtered_df[
                 filtered_df["Κατάστημα"]
                 .str.lower()
-                .str.contains(active_filter, na=False)
+                .str.contains(
+                    active_filter,
+                    na=False
+                )
             ]
 
-    total_sum = filtered_df["Num_Sales"].sum()
-    return filtered_df.reset_index(drop=True), total_sum
+
+    total_sum = filtered_df[
+        "Num_Sales"
+    ].sum()
 
 
-df_stores_1, total_sum_1 = filter_dataframe(df_stores_1)
-df_stores_2, total_sum_2 = filter_dataframe(df_stores_2)
+    return (
+        filtered_df.reset_index(
+            drop=True
+        ),
+        total_sum
+    )
+
+
+df_stores_1, total_sum_1 = filter_dataframe(
+    df_stores_1
+)
+
+
+df_stores_2, total_sum_2 = filter_dataframe(
+    df_stores_2
+)
+
 
 img_src = ""
+
+
 banner_files = (
+
     glob.glob("ChatGPT Image*.png")
+
     + glob.glob("*banner*.jpg")
+
     + glob.glob("*banner*.png")
+
 )
+
+
 if banner_files:
+
     banner_filename = banner_files[0]
-    with open(banner_filename, "rb") as image_file:
+
+
+    with open(
+        banner_filename,
+        "rb"
+    ) as image_file:
+
         img_src = (
-            f"data:image/png;base64,{base64.b64encode(image_file.read()).decode()}"
+            f"data:image/png;base64,"
+            f"{base64.b64encode(image_file.read()).decode()}"
         )
+
 
 try:
+
     html_content = f"""
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
-    
+
     <style>
+
     @keyframes blink-number-slow {{
-        0% {{ opacity: 1; color: #2ecc71; text-shadow: 0 0 12px rgba(46, 204, 113, 0.7); }}
-        50% {{ opacity: 0.25; color: #27ae60; text-shadow: none; }}
-        100% {{ opacity: 1; color: #2ecc71; text-shadow: 0 0 12px rgba(46, 204, 113, 0.7); }}
+
+        0% {{
+            opacity: 1;
+            color: #2ecc71;
+            text-shadow: 0 0 12px rgba(46, 204, 113, 0.7);
+        }}
+
+        50% {{
+            opacity: 0.25;
+            color: #27ae60;
+            text-shadow: none;
+        }}
+
+        100% {{
+            opacity: 1;
+            color: #2ecc71;
+            text-shadow: 0 0 12px rgba(46, 204, 113, 0.7);
+        }}
+
     }}
+
 
     @keyframes rotate-phone-smooth {{
-        0% {{ transform: rotate(0deg) scale(1); }}
-        35% {{ transform: rotate(-90deg) scale(1.15); }}
-        65% {{ transform: rotate(-90deg) scale(1.15); }}
-        100% {{ transform: rotate(0deg) scale(1); }}
+
+        0% {{
+            transform: rotate(0deg) scale(1);
+        }}
+
+        35% {{
+            transform: rotate(-90deg) scale(1.15);
+        }}
+
+        65% {{
+            transform: rotate(-90deg) scale(1.15);
+        }}
+
+        100% {{
+            transform: rotate(0deg) scale(1);
+        }}
+
     }}
 
-    body {{ font-family: 'Montserrat', sans-serif; margin: 0; padding: 0; background: transparent; width: 100%; overflow-x: hidden; }}
-    
-    .main-container {{ 
-        position: relative;
-        background: rgba(0, 0, 0, 0.6); 
-        padding: 0; 
-        border-radius: 0; 
-        box-shadow: none; 
-        backdrop-filter: blur(8px); 
-        -webkit-backdrop-filter: blur(8px); 
-        width: 100%; 
-        max-width: 100%; 
-        margin: 0 auto; 
-        text-align: center; 
-        overflow: hidden;
-    }}
-    
-    .banner-container {{
-        position: relative;
-        width: 100%;
-    }}
 
-    .banner-img {{ width: 100%; height: auto; display: block; border-radius: 0; margin: 0; padding: 0; }}
-    
-    .rotate-hint-overlay {{
-        position: absolute;
-        bottom: 8px;
-        right: 12px;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        background: transparent;
+    body {{
+
+        font-family: 'Montserrat', sans-serif;
+
+        margin: 0;
+
         padding: 0;
+
+        background: transparent;
+
+        width: 100%;
+
+        overflow-x: hidden;
+
     }}
-    
+
+
+    .main-container {{
+
+        position: relative;
+
+        background: rgba(0, 0, 0, 0.6);
+
+        padding: 0;
+
+        border-radius: 0;
+
+        box-shadow: none;
+
+        backdrop-filter: blur(8px);
+
+        -webkit-backdrop-filter: blur(8px);
+
+        width: 100%;
+
+        max-width: 100%;
+
+        margin: 0 auto;
+
+        text-align: center;
+
+        overflow: hidden;
+
+    }}
+
+
+    .banner-container {{
+
+        position: relative;
+
+        width: 100%;
+
+    }}
+
+
+    .banner-img {{
+
+        width: 100%;
+
+        height: auto;
+
+        display: block;
+
+        border-radius: 0;
+
+        margin: 0;
+
+        padding: 0;
+
+    }}
+
+
+    .rotate-hint-overlay {{
+
+        position: absolute;
+
+        bottom: 8px;
+
+        right: 12px;
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 5px;
+
+        background: transparent;
+
+        padding: 0;
+
+    }}
+
+
     .phone-icon-wrap {{
+
         display: inline-block;
+
         font-size: 20px;
+
         transform-origin: center;
+
         animation: rotate-phone-smooth 3.5s infinite ease-in-out;
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+
+        filter: drop-shadow(
+            0 2px 4px rgba(0, 0, 0, 0.8)
+        );
+
     }}
+
 
     .turn-mobile-text {{
+
         font-size: 10px;
+
         color: #ffffff;
+
         text-transform: uppercase;
+
         font-weight: 800;
+
         letter-spacing: 0.5px;
+
         white-space: nowrap;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+
+        text-shadow:
+            0 2px 4px rgba(0, 0, 0, 0.9);
+
     }}
+
 
     @media (orientation: landscape) {{
+
         .rotate-hint-overlay {{
+
             display: none !important;
+
         }}
+
     }}
 
-    .content-wrapper {{ padding: 25px; }}
-    
+
+    .content-wrapper {{
+
+        padding: 25px;
+
+    }}
+
+
     .header-area {{
+
         display: flex;
+
         justify-content: space-between;
+
         align-items: center;
+
         margin-bottom: 20px;
+
     }}
-    
-    .top-left-area {{ text-align: left; }}
-    .top-left-text {{ color: #3498db; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }}
-    .top-left-subtext {{ color: #2ecc71; font-size: 13px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }}
-    .top-left-date {{ color: #bdc3c7; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin-top: 2px; }}
-    .top-left-time {{ color: #95a5a6; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin-top: 2px; }}
 
-    .columns-container {{ 
-        display: grid; 
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
-        gap: 20px; 
-        width: 100%; 
+
+    .top-left-area {{
+
+        text-align: left;
+
     }}
-    .product-column {{ width: 100%; }}
 
-    .sub-title {{ color: #3498db; font-size: 18px; margin-bottom: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; text-align: center; }}
-    
-    .poll-item {{ background: rgba(255, 255, 255, 0.08); padding: 12px 18px; border-radius: 12px; margin-bottom: 12px; text-align: left; border: 1px solid rgba(255, 255, 255, 0.1); }}
-    
-    .poll-info {{ display: flex; justify-content: space-between; align-items: center; color: white; font-size: 14px; font-weight: 600; margin-bottom: 8px; gap: 8px; }}
-    .poll-info span:first-child {{ overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }}
-    .poll-info span:last-child {{ white-space: nowrap; text-align: right; flex-shrink: 0; min-width: 100px; }}
-    
-    .win-number-first {{ color: #2ecc71; animation: blink-number-slow 2.5s infinite ease-in-out; font-weight: 700; }}
 
-    .progress-bar-bg {{ background: rgba(255, 255, 255, 0.15); border-radius: 10px; height: 12px; width: 100%; overflow: hidden; }}
-    .progress-fill {{ background: #3498db; height: 100%; border-radius: 10px; }}
-    .total-item {{ background: rgba(52, 152, 219, 0.25); border: 1px solid #3498db; }}
-    
-    .watermark {{
-        text-align: right;
-        color: rgba(255, 255, 255, 0.16);
-        font-size: 10px;
+    .top-left-text {{
+
+        color: #3498db;
+
+        font-size: 13px;
+
+        font-weight: 700;
+
         letter-spacing: 1px;
-        margin-top: 15px;
-        margin-right: 0;
-        margin-bottom: 0;
-        text-transform: none;
-        user-select: none;
+
+        text-transform: uppercase;
+
+        margin-bottom: 2px;
+
     }}
+
+
+    .top-left-subtext {{
+
+        color: #2ecc71;
+
+        font-size: 13px;
+
+        font-weight: 800;
+
+        letter-spacing: 1px;
+
+        text-transform: uppercase;
+
+        margin-bottom: 3px;
+
+    }}
+
+
+    .top-left-date {{
+
+        color: #bdc3c7;
+
+        font-size: 11px;
+
+        font-weight: 600;
+
+        letter-spacing: 0.5px;
+
+        margin-top: 2px;
+
+    }}
+
+
+    .top-left-time {{
+
+        color: #95a5a6;
+
+        font-size: 11px;
+
+        font-weight: 600;
+
+        letter-spacing: 0.5px;
+
+        margin-top: 2px;
+
+    }}
+
+
+    .columns-container {{
+
+        display: grid;
+
+        grid-template-columns:
+            repeat(
+                auto-fit,
+                minmax(320px, 1fr)
+            );
+
+        gap: 20px;
+
+        width: 100%;
+
+    }}
+
+
+    .product-column {{
+
+        width: 100%;
+
+    }}
+
+
+    .sub-title {{
+
+        color: #3498db;
+
+        font-size: 18px;
+
+        margin-bottom: 15px;
+
+        font-weight: 700;
+
+        text-transform: uppercase;
+
+        letter-spacing: 1px;
+
+        text-align: center;
+
+    }}
+
+
+    .poll-item {{
+
+        background:
+            rgba(255, 255, 255, 0.08);
+
+        padding: 12px 18px;
+
+        border-radius: 12px;
+
+        margin-bottom: 12px;
+
+        text-align: left;
+
+        border:
+            1px solid
+            rgba(255, 255, 255, 0.1);
+
+    }}
+
+
+    .poll-info {{
+
+        display: flex;
+
+        justify-content: space-between;
+
+        align-items: center;
+
+        color: white;
+
+        font-size: 14px;
+
+        font-weight: 600;
+
+        margin-bottom: 8px;
+
+        gap: 8px;
+
+    }}
+
+
+    .poll-info span:first-child {{
+
+        overflow: hidden;
+
+        text-overflow: ellipsis;
+
+        flex: 1;
+
+        min-width: 0;
+
+    }}
+
+
+    .poll-info span:last-child {{
+
+        white-space: nowrap;
+
+        text-align: right;
+
+        flex-shrink: 0;
+
+        min-width: 100px;
+
+    }}
+
+
+    .win-number-first {{
+
+        color: #2ecc71;
+
+        animation:
+            blink-number-slow
+            2.5s
+            infinite
+            ease-in-out;
+
+        font-weight: 700;
+
+    }}
+
+
+    .progress-bar-bg {{
+
+        background:
+            rgba(255, 255, 255, 0.15);
+
+        border-radius: 10px;
+
+        height: 12px;
+
+        width: 100%;
+
+        overflow: hidden;
+
+    }}
+
+
+    .progress-fill {{
+
+        background: #3498db;
+
+        height: 100%;
+
+        border-radius: 10px;
+
+    }}
+
+
+    .total-item {{
+
+        background:
+            rgba(52, 152, 219, 0.25);
+
+        border:
+            1px solid #3498db;
+
+    }}
+
+
+    .watermark {{
+
+        text-align: left;
+
+        color:
+            rgba(255, 255, 255, 0.16);
+
+        font-size: 12px;
+
+        font-weight: 600;
+
+        letter-spacing: 1px;
+
+        margin-top: 15px;
+
+        margin-left: 0;
+
+        margin-right: 0;
+
+        margin-bottom: 0;
+
+        text-transform: none;
+
+        user-select: none;
+
+    }}
+
     </style>
-    
+
+
     <div class="main-container">
+
+
         <div class="banner-container">
-            <img src="{img_src}" class="banner-img" alt="banner">
+
+
+            <img
+                src="{img_src}"
+                class="banner-img"
+                alt="banner"
+            >
+
+
             <div class="rotate-hint-overlay">
-                <span class="phone-icon-wrap">📱</span>
-                <span class="turn-mobile-text">TURN MOBILE</span>
+
+                <span class="phone-icon-wrap">
+                    📱
+                </span>
+
+                <span class="turn-mobile-text">
+                    TURN MOBILE
+                </span>
+
             </div>
+
+
         </div>
+
 
         <div class="content-wrapper">
-            <audio id="cheerAudio" preload="auto">
-                <source src="https://www.myinstants.com/media/sounds/applause.mp3" type="audio/mpeg">
+
+
+            <audio
+                id="cheerAudio"
+                preload="auto"
+            >
+
+                <source
+                    src="https://www.myinstants.com/media/sounds/applause.mp3"
+                    type="audio/mpeg"
+                >
+
             </audio>
 
+
             <div class="header-area">
+
+
                 <div class="top-left-area">
-                    <div class="top-left-text">ΤΟΜΕΑΣ 3</div>
-                    <div class="top-left-subtext">UPDATE SALES</div>
-                    <div class="top-left-date">{file_date_str}</div>
-                    <div class="top-left-time">εως: {file_time_str}</div>
+
+
+                    <div class="top-left-text">
+                        ΤΟΜΕΑΣ 3
+                    </div>
+
+
+                    <div class="top-left-subtext">
+                        UPDATE SALES
+                    </div>
+
+
+                    <div class="top-left-date">
+                        {file_date_str}
+                    </div>
+
+
+                    <div class="top-left-time">
+                        εως: {file_time_str}
+                    </div>
+
+
                 </div>
+
+
             </div>
+
 
             <div class="columns-container">
+
     """
 
-    # --- ΣΤΗΛΗ 1 ---
-    html_content += '<div class="product-column">'
-    html_content += f'<div class="sub-title">{title_1}</div>'
+
+    # ---------------------------
+    # ΣΤΗΛΗ 1
+    # ---------------------------
+
+    html_content += (
+        '<div class="product-column">'
+    )
+
+
+    html_content += (
+        f'<div class="sub-title">'
+        f'{title_1}'
+        f'</div>'
+    )
+
 
     if not df_stores_1.empty:
+
+
         for index, row in df_stores_1.iterrows():
-            katastima = str(row["Κατάστημα"])
-            if katastima.lower() == "nan" or not katastima.strip():
-                continue
-            num = row["Num_Sales"]
-            formatted_num = format_smart_num(num)
-            bar_width = (
-                round((num / max_sales_1) * 100) if max_sales_1 > 0 else 0
+
+
+            katastima = str(
+                row["Κατάστημα"]
             )
+
+
+            if (
+                katastima.lower() == "nan"
+                or not katastima.strip()
+            ):
+
+                continue
+
+
+            num = row["Num_Sales"]
+
+
+            formatted_num = format_smart_num(
+                num
+            )
+
+
+            bar_width = (
+
+                round(
+                    (num / max_sales_1) * 100
+                )
+
+                if max_sales_1 > 0
+
+                else 0
+
+            )
+
+
             if bar_width > 100:
+
                 bar_width = 100
 
+
             if index == 0:
+
+
                 html_content += f"""
+
                 <div class="poll-item">
+
                     <div class="poll-info">
-                        <span><b>{katastima}</b></span>
-                        <span class="win-number-first">{formatted_num} τμχ/κιλ</span>
+
+                        <span>
+                            <b>{katastima}</b>
+                        </span>
+
+                        <span class="win-number-first">
+                            {formatted_num} τμχ/κιλ
+                        </span>
+
                     </div>
+
                     <div class="progress-bar-bg">
-                        <div class="progress-fill" style="width: {bar_width}%;"></div>
+
+                        <div
+                            class="progress-fill"
+                            style="width: {bar_width}%;"
+                        ></div>
+
                     </div>
+
                 </div>
-                """
-            else:
-                html_content += f"""
-                <div class="poll-item">
-                    <div class="poll-info">
-                        <span><b>{katastima}</b></span>
-                        <span><b>{formatted_num} τμχ/κιλ</b></span>
-                    </div>
-                    <div class="progress-bar-bg">
-                        <div class="progress-fill" style="width: {bar_width}%;"></div>
-                    </div>
-                </div>
+
                 """
 
-        formatted_total_1 = format_smart_num(total_sum_1)
-        html_content += f"""
-        <div class="poll-item total-item">
-            <div class="poll-info">
-                <span><b>TOTAL</b></span>
-                <span><b>{formatted_total_1} τμχ/κιλ</b></span>
-            </div>
-            <div class="progress-bar-bg">
-                <div class="progress-fill" style="width: 100%;"></div>
-            </div>
-        </div>
-        """
-    else:
-        html_content += (
-            '<div style="color: white; padding: 20px;">Δεν βρέθηκαν δεδομένα.</div>'
+
+            else:
+
+
+                html_content += f"""
+
+                <div class="poll-item">
+
+                    <div class="poll-info">
+
+                        <span>
+                            <b>{katastima}</b>
+                        </span>
+
+                        <span>
+                            <b>
+                                {formatted_num} τμχ/κιλ
+                            </b>
+                        </span>
+
+                    </div>
+
+                    <div class="progress-bar-bg">
+
+                        <div
+                            class="progress-fill"
+                            style="width: {bar_width}%;"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+                """
+
+
+        formatted_total_1 = format_smart_num(
+            total_sum_1
         )
+
+
+        html_content += f"""
+
+        <div class="poll-item total-item">
+
+            <div class="poll-info">
+
+                <span>
+                    <b>TOTAL</b>
+                </span>
+
+                <span>
+                    <b>
+                        {formatted_total_1} τμχ/κιλ
+                    </b>
+                </span>
+
+            </div>
+
+            <div class="progress-bar-bg">
+
+                <div
+                    class="progress-fill"
+                    style="width: 100%;"
+                ></div>
+
+            </div>
+
+        </div>
+
+        """
+
+
+    else:
+
+
+        html_content += (
+
+            '<div style="color: white; padding: 20px;">'
+            'Δεν βρέθηκαν δεδομένα.'
+            '</div>'
+
+        )
+
+
     html_content += "</div>"
 
-    # --- ΣΤΗΛΗ 2 ---
-    html_content += '<div class="product-column">'
-    html_content += f'<div class="sub-title">{title_2}</div>'
+
+    # ---------------------------
+    # ΣΤΗΛΗ 2
+    # ---------------------------
+
+    html_content += (
+        '<div class="product-column">'
+    )
+
+
+    html_content += (
+        f'<div class="sub-title">'
+        f'{title_2}'
+        f'</div>'
+    )
+
 
     if not df_stores_2.empty:
+
+
         for index, row in df_stores_2.iterrows():
-            katastima = str(row["Κατάστημα"])
-            if katastima.lower() == "nan" or not katastima.strip():
-                continue
-            num = row["Num_Sales"]
-            formatted_num = format_smart_num(num)
-            bar_width = (
-                round((num / max_sales_2) * 100) if max_sales_2 > 0 else 0
+
+
+            katastima = str(
+                row["Κατάστημα"]
             )
+
+
+            if (
+                katastima.lower() == "nan"
+                or not katastima.strip()
+            ):
+
+                continue
+
+
+            num = row["Num_Sales"]
+
+
+            formatted_num = format_smart_num(
+                num
+            )
+
+
+            bar_width = (
+
+                round(
+                    (num / max_sales_2) * 100
+                )
+
+                if max_sales_2 > 0
+
+                else 0
+
+            )
+
+
             if bar_width > 100:
+
                 bar_width = 100
 
+
             if index == 0:
+
+
                 html_content += f"""
+
                 <div class="poll-item">
+
                     <div class="poll-info">
-                        <span><b>{katastima}</b></span>
-                        <span class="win-number-first">{formatted_num} τμχ/κιλ</span>
+
+                        <span>
+                            <b>{katastima}</b>
+                        </span>
+
+                        <span class="win-number-first">
+                            {formatted_num} τμχ/κιλ
+                        </span>
+
                     </div>
+
                     <div class="progress-bar-bg">
-                        <div class="progress-fill" style="width: {bar_width}%;"></div>
+
+                        <div
+                            class="progress-fill"
+                            style="width: {bar_width}%;"
+                        ></div>
+
                     </div>
+
                 </div>
+
                 """
+
+
             else:
+
+
                 html_content += f"""
+
                 <div class="poll-item">
+
                     <div class="poll-info">
-                        <span><b>{katastima}</b></span>
-                        <span><b>{formatted_num} τμχ/κιλ</b></span>
+
+                        <span>
+                            <b>{katastima}</b>
+                        </span>
+
+                        <span>
+                            <b>
+                                {formatted_num} τμχ/κιλ
+                            </b>
+                        </span>
+
                     </div>
+
                     <div class="progress-bar-bg">
-                        <div class="progress-fill" style="width: {bar_width}%;"></div>
+
+                        <div
+                            class="progress-fill"
+                            style="width: {bar_width}%;"
+                        ></div>
+
                     </div>
+
                 </div>
+
                 """
 
-        formatted_total_2 = format_smart_num(total_sum_2)
-        html_content += f"""
-        <div class="poll-item total-item">
-            <div class="poll-info">
-                <span><b>TOTAL</b></span>
-                <span><b>{formatted_total_2} τμχ/κιλ</b></span>
-            </div>
-            <div class="progress-bar-bg">
-                <div class="progress-fill" style="width: 100%;"></div>
-            </div>
-        </div>
-        """
-    else:
-        html_content += (
-            '<div style="color: white; padding: 20px;">Δεν βρέθηκαν δεδομένα.</div>'
+
+        formatted_total_2 = format_smart_num(
+            total_sum_2
         )
-    html_content += "</div>"
+
+
+        html_content += f"""
+
+        <div class="poll-item total-item">
+
+            <div class="poll-info">
+
+                <span>
+                    <b>TOTAL</b>
+                </span>
+
+                <span>
+                    <b>
+                        {formatted_total_2} τμχ/κιλ
+                    </b>
+                </span>
+
+            </div>
+
+            <div class="progress-bar-bg">
+
+                <div
+                    class="progress-fill"
+                    style="width: 100%;"
+                ></div>
+
+            </div>
+
+        </div>
+
+        """
+
+
+    else:
+
+
+        html_content += (
+
+            '<div style="color: white; padding: 20px;">'
+            'Δεν βρέθηκαν δεδομένα.'
+            '</div>'
+
+        )
+
 
     html_content += "</div>"
+
+
+    html_content += "</div>"
+
 
     if confetti_enabled:
+
+
         html_content += """
+
         <script>
+
+        setTimeout(function() {
+
+            confetti({
+                particleCount: 90,
+                spread: 90,
+                origin: {
+                    x: 0.5,
+                    y: 0.25
+                }
+            });
+
+
             setTimeout(function() {
-                confetti({ particleCount: 90, spread: 90, origin: { x: 0.5, y: 0.25 } });
-                setTimeout(function() {
-                    confetti({ particleCount: 110, spread: 110, origin: { x: 0.5, y: 0.25 } });
-                }, 3000);
-            }, 300);
+
+                confetti({
+                    particleCount: 110,
+                    spread: 110,
+                    origin: {
+                        x: 0.5,
+                        y: 0.25
+                    }
+                });
+
+            }, 3000);
+
+
+        }, 300);
+
         </script>
+
         """
+
 
     if cheer_enabled:
+
+
         html_content += """
+
         <script>
-            function playCheer() {
-                const audio = document.getElementById('cheerAudio');
-                if(audio) {
-                    audio.volume = 0.5;
-                    audio.play().then(() => {
-                        window.removeEventListener('click', playCheer);
-                        window.removeEventListener('touchstart', playCheer);
-                    }).catch(function(error) {
-                        console.log("Audio play blocked");
-                    });
-                }
+
+        function playCheer() {
+
+            const audio =
+                document.getElementById(
+                    'cheerAudio'
+                );
+
+
+            if(audio) {
+
+
+                audio.volume = 0.5;
+
+
+                audio.play().then(() => {
+
+
+                    window.removeEventListener(
+                        'click',
+                        playCheer
+                    );
+
+
+                    window.removeEventListener(
+                        'touchstart',
+                        playCheer
+                    );
+
+
+                }).catch(function(error) {
+
+
+                    console.log(
+                        "Audio play blocked"
+                    );
+
+
+                });
+
+
             }
-            window.addEventListener('click', playCheer);
-            window.addEventListener('touchstart', playCheer);
-            setTimeout(playCheer, 1000);
+
+        }
+
+
+        window.addEventListener(
+            'click',
+            playCheer
+        );
+
+
+        window.addEventListener(
+            'touchstart',
+            playCheer
+        );
+
+
+        setTimeout(
+            playCheer,
+            1000
+        );
+
         </script>
+
         """
 
+
     html_content += """
-            <div class="watermark">tosounidis 2026</div>
+
+            <div class="watermark">
+                tosounidis 2026
+            </div>
+
         </div>
+
     </div>
+
     """
 
-    components.html(html_content, height=1200, scrolling=True)
+
+    components.html(
+        html_content,
+        height=1200,
+        scrolling=True
+    )
+
 
 except Exception as e:
-    st.error(f"Σφάλμα κατά τη φόρτωση του dashboard: {e}")
+
+    st.error(
+        f"Σφάλμα κατά τη φόρτωση του dashboard: {e}"
+    )
