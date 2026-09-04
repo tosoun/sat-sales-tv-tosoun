@@ -727,18 +727,28 @@ try:
     .progress-fill {{ background: #3498db; height: 100%; border-radius: 10px; }}
     .total-item {{ background: rgba(52, 152, 219, 0.25); border: 1px solid #3498db; }}
     
-    .watermark {{ text-align: right; color: rgba(255, 255, 255, 0.2); font-size: 10px; letter-spacing: 1px; margin-top: 15px; margin-right: 5px; text-transform: uppercase; user-select: none; }}
+    .watermark {{
+        text-align: right;
+        color: rgba(255, 255, 255, 0.16);
+        font-size: 10px;
+        letter-spacing: 1px;
+        margin-top: 15px;
+        margin-right: 0;
+        margin-bottom: 0;
+        text-transform: none;
+        user-select: none;
+    }}
     </style>
     
     <div class="main-container">
         <div class="banner-container">
-            <div style="position: absolute; top: 0px; right: 0px; color: rgba(255, 255, 255, 0.16); font-weight: 800; font-size: 10px; letter-spacing: 1.5px; z-index: 9999; pointer-events: none;">tosoun 2026</div>
             <img src="{img_src}" class="banner-img" alt="banner">
             <div class="rotate-hint-overlay">
                 <span class="phone-icon-wrap">📱</span>
                 <span class="turn-mobile-text">TURN MOBILE</span>
             </div>
         </div>
+
         <div class="content-wrapper">
             <audio id="cheerAudio" preload="auto">
                 <source src="https://www.myinstants.com/media/sounds/applause.mp3" type="audio/mpeg">
@@ -912,7 +922,7 @@ try:
         """
 
     html_content += """
-            <div class="watermark">Dashboard Sales App 2026</div>
+            <div class="watermark">tosounidis 2026</div>
         </div>
     </div>
     """
