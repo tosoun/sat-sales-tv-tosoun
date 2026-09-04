@@ -13,13 +13,13 @@ st.set_page_config(page_title="Πωλήσεις 2 Προϊόντων ανά Κα
 st.markdown(
     """
     <style>
-    .stApp { background-color: #1a252f !important; }
+    .stApp { background-color: #2c3e50 !important; }
     #MainMenu {visibility: hidden;} 
     header {visibility: hidden;} 
     footer {visibility: hidden;}
     [data-testid="stToolbar"] {visibility: hidden; display: none;}
     [data-testid="stDecoration"] {visibility: hidden; display: none;}
-    div[data-baseweb="select"] > div, .stRadio label p { color: #bdc3c7 !important; }
+    div[data-baseweb="select"] > div, .stRadio label p { color: white !important; }
     .block-container { padding: 0rem 0.5rem !important; max-width: 100% !important; }
     
     div[data-testid="stHorizontalBlock"] {
@@ -124,7 +124,7 @@ st.markdown(
     div[data-testid="stSelectbox"] label {
         font-size: 13px !important;
         font-weight: 700 !important;
-        color: #95a5a6 !important;
+        color: #e74c3c !important;
         margin-bottom: 0px !important;
         white-space: nowrap !important;
         min-width: fit-content !important;
@@ -615,13 +615,13 @@ if banner_files:
 try:
     html_content = f"""
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-    @keyframes subtle-fade {{
-        0% {{ opacity: 0.95; }}
-        50% {{ opacity: 0.6; }}
-        100% {{ opacity: 0.95; }}
+    @keyframes blink-number-slow {{
+        0% {{ opacity: 1; color: #2ecc71; text-shadow: 0 0 12px rgba(46, 204, 113, 0.7); }}
+        50% {{ opacity: 0.25; color: #27ae60; text-shadow: none; }}
+        100% {{ opacity: 1; color: #2ecc71; text-shadow: 0 0 12px rgba(46, 204, 113, 0.7); }}
     }}
 
     @keyframes rotate-phone-smooth {{
@@ -635,10 +635,12 @@ try:
     
     .main-container {{ 
         position: relative;
-        background: rgba(10, 15, 20, 0.85); 
+        background: rgba(0, 0, 0, 0.6); 
         padding: 0; 
         border-radius: 0; 
         box-shadow: none; 
+        backdrop-filter: blur(8px); 
+        -webkit-backdrop-filter: blur(8px); 
         width: 100%; 
         max-width: 100%; 
         margin: 0 auto; 
@@ -649,10 +651,9 @@ try:
     .banner-container {{
         position: relative;
         width: 100%;
-        opacity: 0.85;
     }}
 
-    .banner-img {{ width: 100%; height: auto; display: block; border-radius: 0; margin: 0; padding: 0; filter: brightness(0.85); }}
+    .banner-img {{ width: 100%; height: auto; display: block; border-radius: 0; margin: 0; padding: 0; }}
     
     .rotate-hint-overlay {{
         position: absolute;
@@ -667,19 +668,20 @@ try:
     
     .phone-icon-wrap {{
         display: inline-block;
-        font-size: 18px;
+        font-size: 20px;
         transform-origin: center;
         animation: rotate-phone-smooth 3.5s infinite ease-in-out;
-        opacity: 0.8;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
     }}
 
     .turn-mobile-text {{
-        font-size: 9px;
-        color: #95a5a6;
+        font-size: 10px;
+        color: #ffffff;
         text-transform: uppercase;
-        font-weight: 600;
+        font-weight: 800;
         letter-spacing: 0.5px;
         white-space: nowrap;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
     }}
 
     @media (orientation: landscape) {{
@@ -688,49 +690,49 @@ try:
         }}
     }}
 
-    .content-wrapper {{ padding: 20px; }}
+    .content-wrapper {{ padding: 25px; }}
     
     .header-area {{
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
     }}
     
     .top-left-area {{ text-align: left; }}
-    .top-left-text {{ color: #7f8c8d; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }}
-    .top-left-subtext {{ color: #95a5a6; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }}
-    .top-left-date {{ color: #7f8c8d; font-size: 10px; font-weight: 500; letter-spacing: 0.5px; margin-top: 2px; }}
-    .top-left-time {{ color: #7f8c8d; font-size: 10px; font-weight: 500; letter-spacing: 0.5px; margin-top: 2px; }}
+    .top-left-text {{ color: #3498db; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }}
+    .top-left-subtext {{ color: #2ecc71; font-size: 13px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }}
+    .top-left-date {{ color: #bdc3c7; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin-top: 2px; }}
+    .top-left-time {{ color: #95a5a6; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin-top: 2px; }}
 
     .columns-container {{ 
         display: grid; 
         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
-        gap: 15px; 
+        gap: 20px; 
         width: 100%; 
     }}
     .product-column {{ width: 100%; }}
 
-    .sub-title {{ color: #95a5a6; font-size: 15px; margin-bottom: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; text-align: center; }}
+    .sub-title {{ color: #3498db; font-size: 18px; margin-bottom: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; text-align: center; }}
     
-    .poll-item {{ background: rgba(255, 255, 255, 0.03); padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; text-align: left; border: 1px solid rgba(255, 255, 255, 0.05); }}
+    .poll-item {{ background: rgba(255, 255, 255, 0.08); padding: 12px 18px; border-radius: 12px; margin-bottom: 12px; text-align: left; border: 1px solid rgba(255, 255, 255, 0.1); }}
     
-    .poll-info {{ display: flex; justify-content: space-between; align-items: center; color: #bdc3c7; font-size: 13px; font-weight: 500; margin-bottom: 6px; gap: 8px; }}
+    .poll-info {{ display: flex; justify-content: space-between; align-items: center; color: white; font-size: 14px; font-weight: 600; margin-bottom: 8px; gap: 8px; }}
     .poll-info span:first-child {{ overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }}
-    .poll-info span:last-child {{ white-space: nowrap; text-align: right; flex-shrink: 0; min-width: 90px; }}
+    .poll-info span:last-child {{ white-space: nowrap; text-align: right; flex-shrink: 0; min-width: 100px; }}
     
-    .win-number-first {{ color: #2ecc71; animation: subtle-fade 3s infinite ease-in-out; font-weight: 600; opacity: 0.9; }}
+    .win-number-first {{ color: #2ecc71; animation: blink-number-slow 2.5s infinite ease-in-out; font-weight: 700; }}
 
-    .progress-bar-bg {{ background: rgba(255, 255, 255, 0.06); border-radius: 6px; height: 8px; width: 100%; overflow: hidden; }}
-    .progress-fill {{ background: #7f8c8d; height: 100%; border-radius: 6px; opacity: 0.7; }}
-    .total-item {{ background: rgba(127, 140, 141, 0.1); border: 1px solid rgba(127, 140, 141, 0.2); }}
+    .progress-bar-bg {{ background: rgba(255, 255, 255, 0.15); border-radius: 10px; height: 12px; width: 100%; overflow: hidden; }}
+    .progress-fill {{ background: #3498db; height: 100%; border-radius: 10px; }}
+    .total-item {{ background: rgba(52, 152, 219, 0.25); border: 1px solid #3498db; }}
     
-    .watermark {{ text-align: right; color: rgba(255, 255, 255, 0.15); font-size: 9px; letter-spacing: 1px; margin-top: 15px; margin-right: 5px; text-transform: uppercase; user-select: none; }}
+    .watermark {{ text-align: right; color: rgba(255, 255, 255, 0.2); font-size: 10px; letter-spacing: 1px; margin-top: 15px; margin-right: 5px; text-transform: uppercase; user-select: none; }}
     </style>
     
     <div class="main-container">
         <div class="banner-container">
-            <div style="position: absolute; top: 6px; left: 12px; color: rgba(255, 255, 255, 0.2); font-weight: 600; font-size: 9px; letter-spacing: 1.5px; z-index: 9999; pointer-events: none; text-transform: uppercase;">TOSOUN 2026</div>
+            <div style="position: absolute; top: 6px; left: 12px; color: rgba(255, 255, 255, 0.25); font-weight: 800; font-size: 10px; letter-spacing: 1.5px; z-index: 9999; pointer-events: none; text-transform: uppercase;">TOSOUN 2026</div>
             <img src="{img_src}" class="banner-img" alt="banner">
             <div class="rotate-hint-overlay">
                 <span class="phone-icon-wrap">📱</span>
@@ -810,7 +812,7 @@ try:
         """
     else:
         html_content += (
-            '<div style="color: #95a5a6; padding: 20px;">Δεν βρέθηκαν δεδομένα.</div>'
+            '<div style="color: white; padding: 20px;">Δεν βρέθηκαν δεδομένα.</div>'
         )
     html_content += "</div>"
 
@@ -870,7 +872,7 @@ try:
         """
     else:
         html_content += (
-            '<div style="color: #95a5a6; padding: 20px;">Δεν βρέθηκαν δεδομένα.</div>'
+            '<div style="color: white; padding: 20px;">Δεν βρέθηκαν δεδομένα.</div>'
         )
     html_content += "</div>"
 
@@ -880,7 +882,10 @@ try:
         html_content += """
         <script>
             setTimeout(function() {
-                confetti({ particleCount: 50, spread: 70, origin: { x: 0.5, y: 0.25 }, colors: ['#7f8c8d', '#95a5a6', '#bdc3c7'] });
+                confetti({ particleCount: 90, spread: 90, origin: { x: 0.5, y: 0.25 } });
+                setTimeout(function() {
+                    confetti({ particleCount: 110, spread: 110, origin: { x: 0.5, y: 0.25 } });
+                }, 3000);
             }, 300);
         </script>
         """
@@ -891,7 +896,7 @@ try:
             function playCheer() {
                 const audio = document.getElementById('cheerAudio');
                 if(audio) {
-                    audio.volume = 0.2;
+                    audio.volume = 0.5;
                     audio.play().then(() => {
                         window.removeEventListener('click', playCheer);
                         window.removeEventListener('touchstart', playCheer);
