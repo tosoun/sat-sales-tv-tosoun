@@ -460,7 +460,7 @@ def process_sales_df(df, file_name=""):
   return custom_title, df_stores, total_sum, max_sales
 
 
-# --- ΑΠΟΚΛΕΙΣΤΙΚΑ ΚΛΕΙΔΙΑ/ΚΩΔΙΚΟΙ ΓΙΑ ΑΠΟΦΥΓΗ ΑΛΛΗΛΕΠΙΚΑΛΥΨΗΣ ---
+# --- ΑΚΡΙΒΗ ΚΛΕΙΔΙΑ/ΚΩΔΙΚΟΙ ΓΙΑ ΤΟΥΣ ΥΠΕΥΘΥΝΟΥΣ ΤΟΥ ΤΟΜΕΑ 3 ---
 MITROULIS_KEYWORDS = [
     "301",
     "302",
@@ -783,9 +783,12 @@ def filter_dataframe(df_stores):
   if active_filter:
     if active_filter in GROUPS_MAPPING:
       keywords = GROUPS_MAPPING[active_filter]
-      pattern = "|".join(keywords)
+      # Δημιουργία regex pattern με word boundaries (\\b) ώστε ο κωδικός "210" να μην ταιριάζει με το "1210"
+      pattern = "|".join([r"\b" + kw + r"\b" for kw in keywords])
       filtered_df = filtered_df[
-          filtered_df["Κατάστημα"].str.lower().str.contains(pattern, na=False)
+          filtered_df["Κατάστημα"]
+          .str.lower()
+          .str.contains(pattern, case=False, na=False, regex=True)
       ]
     else:
       filtered_df = filtered_df[
