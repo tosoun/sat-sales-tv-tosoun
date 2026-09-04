@@ -135,7 +135,7 @@ st.markdown(
 )
 
 # ---- ΕΠΑΝΩ ΣΕΙΡΑ: Admin και πεδίο Περιφέρειας δίπλα-δίπλα ----
-col_admin, col_input_space, col_empty_space = st.columns([2.5, 3.5, 4])
+col_admin, col_input_space, col_empty_space = st.columns([3.5, 2.5, 3])
 
 with col_admin:
   with st.expander("⚙️ Διαχείριση Αρχείων (Admin)"):
@@ -199,30 +199,24 @@ with col_admin:
       if "selected_report_date" not in st.session_state:
         st.session_state.selected_report_date = datetime.date.today()
 
-      col_date, col_time, col_confetti, col_cheer = st.columns(
-          [1.2, 1.2, 1, 1]
+      selected_date = st.date_input(
+          "Ημερομηνία αναφοράς:", value=st.session_state.selected_report_date
       )
+      st.session_state.selected_report_date = selected_date
 
-      with col_date:
-        selected_date = st.date_input(
-            "Ημερομηνία αναφοράς:",
-            value=st.session_state.selected_report_date,
-        )
-        st.session_state.selected_report_date = selected_date
+      selected_time = st.selectbox(
+          "Ώρα αναφοράς:",
+          options=time_options,
+          index=(
+              time_options.index(st.session_state.selected_half_hour)
+              if st.session_state.selected_half_hour in time_options
+              else 0
+          ),
+          format_func=lambda x: x.strftime("%H:%M"),
+      )
+      st.session_state.selected_half_hour = selected_time
 
-      with col_time:
-        selected_time = st.selectbox(
-            "Ώρα αναφοράς:",
-            options=time_options,
-            index=(
-                time_options.index(st.session_state.selected_half_hour)
-                if st.session_state.selected_half_hour in time_options
-                else 0
-            ),
-            format_func=lambda x: x.strftime("%H:%M"),
-        )
-        st.session_state.selected_half_hour = selected_time
-
+      col_confetti, col_cheer = st.columns(2)
       with col_confetti:
         confetti_choice = st.radio(
             "Κομφετί:",
