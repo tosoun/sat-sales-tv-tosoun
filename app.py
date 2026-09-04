@@ -50,8 +50,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-excel_path_1 = "product1_sales.xlsx"
-excel_path_2 = "product2_sales.xlsx"
+excel_path_1 = "Πωλήσεις Ειδών Προσφορών από 29082026 - 29082026.xlsx"
+excel_path_2 = "S3 - Πωλήσεις Ειδών-6.xlsx"
 time_path = "upload_time.txt"
 date_path = "upload_date.txt"
 confetti_path = "confetti_status.txt"
@@ -168,13 +168,13 @@ with col_admin:
 
       with col_up1:
         uploaded_file_1 = st.file_uploader(
-            "Αρχείο για Προϊόν 1 (product1_sales.xlsx):",
+            "Αρχείο 1 (Πωλήσεις Ειδών Προσφορών):",
             type=["xlsx"],
             key="up1",
         )
       with col_up2:
         uploaded_file_2 = st.file_uploader(
-            "Αρχείο για Προϊόν 2 (product2_sales.xlsx):",
+            "Αρχείο 2 (S3 - Πωλήσεις Ειδών-6):",
             type=["xlsx"],
             key="up2",
         )
@@ -266,7 +266,7 @@ with col_admin:
                 excel_path_1,
                 repo_name,
                 gh_token,
-                "Auto-update product1_sales.xlsx",
+                "Auto-update sales file 1",
             )
 
           with open(excel_path_2, "wb") as f:
@@ -276,7 +276,7 @@ with col_admin:
                 excel_path_2,
                 repo_name,
                 gh_token,
-                "Auto-update product2_sales.xlsx",
+                "Auto-update sales file 2",
             )
 
           if gh_token and repo_name:
