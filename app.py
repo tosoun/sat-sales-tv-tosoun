@@ -410,26 +410,27 @@ def process_sales_df(df):
       header_row_idx = i
       break
 
+  df.columns = df.iloc[header_row_idx].astype(str).str.strip()
   df = df.iloc[header_row_idx + 1 :].reset_index(drop=True)
 
-  if len(df.columns) >= 3:
-    df = df.iloc[:, [0, 2]]
-  elif len(df.columns) >= 2:
-    df = df.iloc[:, [0, 1]]
-  else:
-    df = df.iloc[:, [0, 0]]
+  store_col = df.columns[0]
+  value_col = df.columns[1] if len(df.columns) > 1 else df.columns[0]
 
-  df.columns = ["Κατάστημα", "Ποσότητα"]
-  df = df.dropna(subset=["Κατάστημα", "Ποσότητα"])
-  df["Κατάστημα"] = df["Κατάστημα"].astype(str).str.strip()
+  df_selected = df[[store_col, value_col]].copy()
+  df_selected.columns = ["Κατάστημα", "Ποσότητα"]
 
-  df = df[
-      ~df["Κατάστημα"].str.contains(
+  df_selected = df_selected.dropna(subset=["Κατάστημα", "Ποσότητα"])
+  df_selected["Κατάστημα"] = df_selected["Κατάστημα"].astype(str).str.strip()
+
+  df_selected = df_selected[
+      ~df_selected["Κατάστημα"].str.contains(
           "Κατάστημα|ΠΟΣΟΤ|ΠΑΡΑΔΕΙΓΜΑ|NaN", case=False, na=False
       )
   ]
-  df_clean = df[
-      ~df["Κατάστημα"].str.contains("Total|Συνολο|ΣΥΝΟΛΟ", case=False, na=False)
+  df_clean = df_selected[
+      ~df_selected["Κατάστημα"].str.contains(
+          "Total|Συνολο|ΣΥΝΟΛΟ", case=False, na=False
+      )
   ].copy()
 
   df_clean["Num_Sales"] = df_clean["Ποσότητα"].apply(clean_quantity_value)
