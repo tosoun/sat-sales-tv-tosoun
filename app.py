@@ -26,26 +26,6 @@ st.markdown(
         align-items: center !important;
     }
     </style>
-    
-    <script>
-    function removeManageButton() {
-        const doc = window.parent.document;
-        const buttons = doc.querySelectorAll('button');
-        buttons.forEach(btn => {
-            if (btn.innerText.includes('Manage app') || btn.innerHTML.includes('Manage')) {
-                btn.style.display = 'none';
-            }
-        });
-        
-        const pwdInputs = doc.querySelectorAll('input[type="password"]');
-        pwdInputs.forEach(input => {
-            input.setAttribute('autocomplete', 'username');
-            input.setAttribute('data-form-type', 'other');
-            input.removeAttribute('name');
-        });
-    }
-    setInterval(removeManageButton, 300);
-    </script>
 """,
     unsafe_allow_html=True,
 )
@@ -146,23 +126,6 @@ with col_admin:
             key="admin_pass",
             placeholder="Κωδικός",
             type="default",
-        )
-
-        components.html(
-            """
-            <script>
-            const doc = window.parent.document;
-            const inputs = doc.querySelectorAll('input');
-            inputs.forEach(input => {
-                if (input.getAttribute('aria-label') && input.getAttribute('aria-label').includes('κωδικό')) {
-                    input.setAttribute('autocomplete', 'off');
-                    input.setAttribute('data-form-type', 'other');
-                    input.removeAttribute('name');
-                }
-            });
-            </script>
-        """,
-            height=0,
         )
 
         if password == "2845":
