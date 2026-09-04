@@ -415,18 +415,17 @@ def process_sales_df(df, file_name=""):
 
   store_col = df.columns[0]
 
-  # Ρύθμιση στήλης ανάλογα με το αρχείο (π.χ. 3η στήλη index 2 για το 2ο αρχείο, ή 4η στήλη index 3 για προσφορές αν χρειάζεται)
   is_prosfores = (
       "προσφορ" in custom_title.lower()
       or "προσφορ" in file_name.lower()
       or "προσφορ" in excel_path_1.lower()
       and file_name == excel_path_1
   )
-  
+
   if is_prosfores:
-    target_col_idx = 1  # Ή 3 αν θες τη στήλη D
+    target_col_idx = 1
   else:
-    target_col_idx = 1  # 2η στήλη (index 1) για τις ποσότητες στο 2ο αρχείο
+    target_col_idx = 1
 
   if len(df.columns) > target_col_idx:
     value_col = df.columns[target_col_idx]
@@ -461,6 +460,7 @@ def process_sales_df(df, file_name=""):
   return custom_title, df_stores, total_sum, max_sales
 
 
+# --- ΑΠΟΚΛΕΙΣΤΙΚΑ ΚΛΕΙΔΙΑ/ΚΩΔΙΚΟΙ ΓΙΑ ΑΠΟΦΥΓΗ ΑΛΛΗΛΕΠΙΚΑΛΥΨΗΣ ---
 MITROULIS_KEYWORDS = [
     "301",
     "302",
@@ -476,19 +476,14 @@ MITROULIS_KEYWORDS = [
     "366",
     "374",
     "αιανη",
-    "κοζανη",
     "πλ.ελευθεριας",
     "πλ.λασσανη",
-    "μ.αλεξανδρου",
     "σιατιστα",
     "25ης μαρτιου",
-    "φιλιππου",
     "ελ.βενιζελου",
     "ιωαννη αρχη",
-    "φλωρινα",
     "κοζανης και γρεβενων",
     "χλόη",
-    "καστορια",
     "δισπυλο",
     "αθ. διακου",
     "γραμμου",
