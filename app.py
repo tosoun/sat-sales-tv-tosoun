@@ -8,7 +8,7 @@ import requests
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Πωλήσεις 2 Προϊόντων ανά Κατάστημα", layout="wide")
+st.set_page_config(page_title="Πωλήσεις 2 Προϊόντων ανά Κατάστημα 2026", layout="wide")
 
 st.markdown(
     """
@@ -140,7 +140,7 @@ st.markdown(
 col_admin, col_input_space, col_empty_space = st.columns([3.5, 2.5, 3])
 
 with col_admin:
-    with st.expander("⚙️ Διαχείριση Αρχείων (Admin)"):
+    with st.expander("⚙️ Διαχείριση Αρχείων (Admin 2026)"):
         password = st.text_input(
             "Εισάγετε κωδικό διαχειριστή:",
             key="admin_pass",
@@ -701,7 +701,7 @@ try:
     
     .top-left-area {{ text-align: left; }}
     .top-left-text {{ color: #3498db; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }}
-    .top-left-subtext {{ color: #2ecc71; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }}
+    .top-left-subtext {{ color: #2ecc71; font-size: 13px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }}
     .top-left-date {{ color: #bdc3c7; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin-top: 2px; }}
     .top-left-time {{ color: #95a5a6; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin-top: 2px; }}
 
@@ -746,7 +746,7 @@ try:
             <div class="header-area">
                 <div class="top-left-area">
                     <div class="top-left-text">ΤΟΜΕΑΣ 3</div>
-                    <div class="top-left-subtext">UPDATE SALES</div>
+                    <div class="top-left-subtext">UPDATE SALES 2026</div>
                     <div class="top-left-date">{file_date_str}</div>
                     <div class="top-left-time">εως: {file_time_str}</div>
                 </div>
@@ -881,38 +881,42 @@ try:
         html_content += """
         <script>
             setTimeout(function() {
-                if (typeof confetti === 'function') {
-                    confetti({
-                        particleCount: 120,
-                        spread: 80,
-                        origin: { y: 0.6 }
-                    });
-                }
-            }, 500);
+                confetti({ particleCount: 90, spread: 90, origin: { x: 0.5, y: 0.25 } });
+                setTimeout(function() {
+                    confetti({ particleCount: 110, spread: 110, origin: { x: 0.5, y: 0.25 } });
+                }, 3000);
+            }, 300);
         </script>
         """
 
     if cheer_enabled:
         html_content += """
         <script>
-            setTimeout(function() {
-                var audio = document.getElementById("cheerAudio");
-                if (audio) {
-                    audio.play().catch(function(error) {
-                        console.log("Audio play prevented:", error);
+            function playCheer() {
+                const audio = document.getElementById('cheerAudio');
+                if(audio) {
+                    audio.volume = 0.5;
+                    audio.play().then(() => {
+                        window.removeEventListener('click', playCheer);
+                        window.removeEventListener('touchstart', playCheer);
+                    }).catch(function(error) {
+                        console.log("Audio play blocked");
                     });
                 }
-            }, 600);
+            }
+            window.addEventListener('click', playCheer);
+            window.addEventListener('touchstart', playCheer);
+            setTimeout(playCheer, 1000);
         </script>
         """
 
     html_content += """
-            <div class="watermark">TOSOUN 2026</div>
+            <div class="watermark">Dashboard Sales App 2026</div>
         </div>
     </div>
     """
 
-    components.html(html_content, height=900, scrolling=True)
+    components.html(html_content, height=1200, scrolling=True)
 
 except Exception as e:
-    st.error(f"Σφάλμα κατά τη φόρτωση του Dashboard: {e}")
+    st.error(f"Σφάλμα κατά τη φόρτωση του dashboard: {e}")
