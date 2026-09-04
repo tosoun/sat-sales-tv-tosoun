@@ -881,39 +881,38 @@ try:
         html_content += """
         <script>
             setTimeout(function() {
-                confetti({ particleCount: 90, spread: 90, origin: { x: 0.5, y: 0.25 } });
-                setTimeout(function() {
-                    confetti({ particleCount: 110, spread: 110, origin: { x: 0.5, y: 0.25 } });
-                }, 3000);
-            }, 300);
+                if (typeof confetti === 'function') {
+                    confetti({
+                        particleCount: 120,
+                        spread: 80,
+                        origin: { y: 0.6 }
+                    });
+                }
+            }, 500);
         </script>
         """
 
     if cheer_enabled:
         html_content += """
         <script>
-            function playCheer() {
-                const audio = document.getElementById('cheerAudio');
-                if(audio) {
-                    audio.volume = 0.5;
-                    audio.play().then(() => {
-                        window.removeEventListener('click', playCheer);
-                        window.removeEventListener('touchstart', playCheer);
-                    }).catch(function(error) {
-                        console.log("Audio play blocked");
+            setTimeout(function() {
+                var audio = document.getElementById("cheerAudio");
+                if (audio) {
+                    audio.play().catch(function(error) {
+                        console.log("Audio play prevented:", error);
                     });
                 }
-            }
-            window.addEventListener('click', playCheer);
-            window.addEventListener('touchstart', playCheer);
+            }, 600);
         </script>
         """
 
-    html_content += f"""
-            <div class="watermark">TOMEAS 3</div>
+    html_content += """
+            <div class="watermark">TOSOUN 2026</div>
         </div>
     </div>
     """
-    components.html(html_content, height=1200, scrolling=True)
+
+    components.html(html_content, height=900, scrolling=True)
+
 except Exception as e:
-    st.error(f"Σφάλμα κατά την εμφάνιση: {e}")
+    st.error(f"Σφάλμα κατά τη φόρτωση του Dashboard: {e}")
