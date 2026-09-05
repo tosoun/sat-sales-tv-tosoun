@@ -118,43 +118,6 @@ st.markdown(
             width: auto !important;
             min-width: 0 !important;
         }
-
-        /* Excel button */
-        div[data-testid="stHorizontalBlock"]
-        div[data-testid="stHorizontalBlock"]
-        > div[data-testid="column"]:nth-child(2) {
-            flex: 0 0 72px !important;
-            width: 72px !important;
-            min-width: 72px !important;
-            max-width: 72px !important;
-        }
-
-        div[data-testid="stSelectbox"] {
-            width: 100% !important;
-        }
-
-        div[data-testid="stSelectbox"] label {
-            font-size: 11px !important;
-            gap: 4px !important;
-        }
-
-        div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-            min-height: 42px !important;
-            font-size: 12px !important;
-        }
-
-        div[data-testid="stDownloadButton"] {
-            width: 72px !important;
-        }
-
-        div[data-testid="stDownloadButton"] > button {
-            width: 72px !important;
-            min-width: 72px !important;
-            height: 42px !important;
-            min-height: 42px !important;
-            padding: 0 4px !important;
-            font-size: 10px !important;
-        }
     }
     </style>
 
@@ -795,25 +758,12 @@ with col_input_space:
         "πουτογλιδης",
     ]
 
-    col_region_select, col_excel_button = st.columns([6, 1], gap="small")
-
-    with col_region_select:
-
-        selected_region = st.selectbox(
-            "📍 ΠΕΡΙΦΕΡΕΙΑ",
-            options=region_options,
-            index=0,
-            format_func=lambda x: x.upper(),
-        )
-
-    with col_excel_button:
-
-        st.markdown(
-            "<div style='height: 20px;'></div>",
-            unsafe_allow_html=True,
-        )
-
-        excel_button_slot = st.empty()
+    selected_region = st.selectbox(
+        "📍 ΠΕΡΙΦΕΡΕΙΑ",
+        options=region_options,
+        index=0,
+        format_func=lambda x: x.upper(),
+    )
 
     active_filter = (
         selected_region.lower()
@@ -1873,6 +1823,9 @@ def build_excel_file():
     return output.getvalue()
 
 
+excel_download_b64 = ""
+excel_download_filename = "sales.xlsx"
+
 try:
 
     excel_data = build_excel_file()
@@ -1882,25 +1835,17 @@ try:
         .replace(" ", "_")
     )
 
-    excel_button_slot.download_button(
-        label="⬇ XLSX",
-        data=excel_data,
-        file_name=(
-            f"sales_{safe_region_name}_"
-            f"{datetime.date.today().strftime('%Y%m%d')}.xlsx"
-        ),
-        mime=(
-            "application/vnd.openxmlformats-officedocument."
-            "spreadsheetml.sheet"
-        ),
-        key="download_current_sales_xlsx",
+    excel_download_filename = (
+        f"sales_{safe_region_name}_"
+        f"{datetime.date.today().strftime('%Y%m%d')}.xlsx"
     )
 
-except Exception as excel_error:
-
-    excel_button_slot.caption(
-        "XLSX error"
+    excel_download_b64 = (
+        base64.b64encode(excel_data).decode("utf-8")
     )
+
+except Exception:
+    excel_download_b64 = ""
 
 
 # ==================================================
@@ -2454,6 +2399,18 @@ try:
     }}
 
 
+    .footer-tools {{
+
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        margin-top: 15px;
+        width: 100%;
+
+    }}
+
+
     .watermark {{
 
         text-align: left;
@@ -2467,17 +2424,38 @@ try:
 
         letter-spacing: 1px;
 
-        margin-top: 15px;
-
-        margin-left: 0;
-
-        margin-right: 0;
-
-        margin-bottom: 0;
+        margin: 0;
 
         text-transform: none;
 
         user-select: none;
+
+    }}
+
+
+    .excel-bottom-btn {{
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 0 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.22);
+        background: rgba(255,255,255,0.10);
+        color: #ffffff;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 10px;
+        font-weight: 800;
+        text-decoration: none;
+        white-space: nowrap;
+
+    }}
+
+
+    .excel-bottom-btn:hover {{
+
+        background: rgba(255,255,255,0.18);
 
     }}
 
@@ -3170,10 +3148,32 @@ try:
     # WATERMARK
     # ==================================================
 
-    html_content += """
+    excel_bottom_html = ""
 
-            <div class="watermark">
-                tosounidis 2026
+    if excel_download_b64:
+
+        excel_bottom_html = f"""
+            <a
+                class="excel-bottom-btn"
+                href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{excel_download_b64}"
+                download="{excel_download_filename}"
+                title="Λήψη Excel"
+            >
+                ⬇ XLSX
+            </a>
+        """
+
+
+    html_content += f"""
+
+            <div class="footer-tools">
+
+                <div class="watermark">
+                    tosounidis 2026
+                </div>
+
+                {excel_bottom_html}
+
             </div>
 
         </div>
