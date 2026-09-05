@@ -3,15 +3,19 @@ import datetime
 import glob
 import json
 import os
+import unicodedata
+
 import pandas as pd
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
 
+
 st.set_page_config(
     page_title="Πωλήσεις 2 Προϊόντων ανά Κατάστημα 2026",
     layout="wide"
 )
+
 
 st.markdown(
     """
@@ -153,7 +157,6 @@ def upload_to_github(
         return put_r.status_code in [200, 201]
 
     except Exception:
-
         return False
 
 
@@ -178,7 +181,6 @@ if os.path.exists(confetti_path):
             )
 
     except Exception:
-
         pass
 
 
@@ -203,7 +205,6 @@ if os.path.exists(cheer_path):
             )
 
     except Exception:
-
         pass
 
 
@@ -304,13 +305,11 @@ with col_admin:
             height=0,
         )
 
-
         if password == "2845":
 
             st.markdown("---")
 
             col_up1, col_up2 = st.columns(2)
-
 
             with col_up1:
 
@@ -320,7 +319,6 @@ with col_admin:
                     key="up1",
                 )
 
-
             with col_up2:
 
                 uploaded_file_2 = st.file_uploader(
@@ -329,9 +327,7 @@ with col_admin:
                     key="up2",
                 )
 
-
             st.markdown("---")
-
 
             time_options = []
 
@@ -346,7 +342,6 @@ with col_admin:
                         )
                     )
 
-
             time_options.append(
                 datetime.time(22, 0)
             )
@@ -355,20 +350,17 @@ with col_admin:
                 list(set(time_options))
             )
 
-
             now = (
                 datetime.datetime.now()
                 -
                 datetime.timedelta(hours=1)
             )
 
-
             default_minute = (
                 0
                 if now.minute < 30
                 else 30
             )
-
 
             default_hour = max(
                 8,
@@ -378,12 +370,10 @@ with col_admin:
                 )
             )
 
-
             default_time = datetime.time(
                 default_hour,
                 default_minute
             )
-
 
             if (
                 "selected_half_hour"
@@ -394,7 +384,6 @@ with col_admin:
                     "selected_half_hour"
                 ] = default_time
 
-
             if (
                 "selected_report_date"
                 not in st.session_state
@@ -404,7 +393,6 @@ with col_admin:
                     "selected_report_date"
                 ] = datetime.date.today()
 
-
             selected_date = st.date_input(
                 "Ημερομηνία αναφοράς:",
                 value=st.session_state[
@@ -412,11 +400,9 @@ with col_admin:
                 ]
             )
 
-
             st.session_state[
                 "selected_report_date"
             ] = selected_date
-
 
             selected_time = st.selectbox(
                 "Ώρα αναφοράς:",
@@ -437,14 +423,11 @@ with col_admin:
                 format_func=lambda x: x.strftime("%H:%M"),
             )
 
-
             st.session_state[
                 "selected_half_hour"
             ] = selected_time
 
-
             col_confetti, col_cheer = st.columns(2)
-
 
             with col_confetti:
 
@@ -460,7 +443,6 @@ with col_admin:
                     key="conf_radio",
                 )
 
-
             with col_cheer:
 
                 cheer_choice = st.radio(
@@ -475,7 +457,6 @@ with col_admin:
                     key="cheer_radio",
                 )
 
-
             if (
                 uploaded_file_1 is not None
                 and
@@ -489,10 +470,8 @@ with col_admin:
                     f"{uploaded_file_2.size}"
                 )
 
-
                 gh_token = None
                 repo_name = None
-
 
                 try:
 
@@ -509,7 +488,6 @@ with col_admin:
                             ]
                         )
 
-
                     if (
                         hasattr(st, "secrets")
                         and
@@ -524,9 +502,7 @@ with col_admin:
                         )
 
                 except Exception:
-
                     pass
-
 
                 current_time_str = (
                     selected_time.strftime(
@@ -534,13 +510,11 @@ with col_admin:
                     )
                 )
 
-
                 current_date_str = (
                     selected_date.strftime(
                         "%d/%m/%Y"
                     )
                 )
-
 
                 with open(
                     time_path,
@@ -552,7 +526,6 @@ with col_admin:
                         current_time_str
                     )
 
-
                 with open(
                     date_path,
                     "w",
@@ -562,7 +535,6 @@ with col_admin:
                     df_file.write(
                         current_date_str
                     )
-
 
                 with open(
                     confetti_path,
@@ -577,7 +549,6 @@ with col_admin:
                         )
                     )
 
-
                 with open(
                     cheer_path,
                     "w",
@@ -591,7 +562,6 @@ with col_admin:
                         )
                     )
 
-
                 with open(
                     excel_path_1,
                     "wb"
@@ -602,7 +572,6 @@ with col_admin:
                         .getbuffer()
                     )
 
-
                 if gh_token and repo_name:
 
                     upload_to_github(
@@ -611,7 +580,6 @@ with col_admin:
                         gh_token,
                         "Auto-update sales file 1",
                     )
-
 
                 with open(
                     excel_path_2,
@@ -623,7 +591,6 @@ with col_admin:
                         .getbuffer()
                     )
 
-
                 if gh_token and repo_name:
 
                     upload_to_github(
@@ -632,7 +599,6 @@ with col_admin:
                         gh_token,
                         "Auto-update sales file 2",
                     )
-
 
                 if gh_token and repo_name:
 
@@ -650,18 +616,15 @@ with col_admin:
                         "Auto-update upload date",
                     )
 
-
                 st.session_state[
                     "last_uploaded_sig"
                 ] = upload_signature
-
 
                 st.success(
                     "Και τα δύο αρχεία ανέβηκαν "
                     "αυτόματα και συγχρονίστηκαν "
                     "επιτυχώς!"
                 )
-
 
                 components.html(
                     """
@@ -682,7 +645,6 @@ with col_admin:
                     """,
                     height=0,
                 )
-
 
         elif password:
 
@@ -708,14 +670,12 @@ with col_input_space:
         "πουτογλιδης",
     ]
 
-
     selected_region = st.selectbox(
         "📍 ΠΕΡΙΦΕΡΕΙΑ",
         options=region_options,
         index=0,
         format_func=lambda x: x.upper(),
     )
-
 
     active_filter = (
         selected_region.lower()
@@ -727,7 +687,6 @@ with col_input_space:
 # ==================================================
 
 file_time_str = "--:--"
-
 
 if os.path.exists(time_path):
 
@@ -744,7 +703,6 @@ if os.path.exists(time_path):
             )
 
     except Exception:
-
         pass
 
 
@@ -756,7 +714,6 @@ file_date_str = (
     datetime.date.today()
     .strftime("%d/%m/%Y")
 )
-
 
 if os.path.exists(date_path):
 
@@ -773,7 +730,6 @@ if os.path.exists(date_path):
             )
 
     except Exception:
-
         pass
 
 
@@ -878,6 +834,36 @@ def format_smart_num(num):
         )
 
 
+# ==================================================
+# ΚΑΝΟΝΙΚΟΠΟΙΗΣΗ ΚΕΙΜΕΝΟΥ
+# ΒΓΑΖΕΙ ΤΟΝΟΥΣ / ΠΕΖΑ-ΚΕΦΑΛΑΙΑ
+# ==================================================
+
+def normalize_text(text):
+
+    text = str(text).strip().lower()
+
+    text = unicodedata.normalize(
+        "NFD",
+        text
+    )
+
+    text = "".join(
+        char
+        for char in text
+        if unicodedata.category(char) != "Mn"
+    )
+
+    return text
+
+
+# ==================================================
+# ΕΠΕΞΕΡΓΑΣΙΑ EXCEL
+#
+# Η ΣΤΗΛΗ ΠΟΣΟΤΗΤΑ ΕΝΤΟΠΙΖΕΤΑΙ
+# ΑΠΟ ΤΟ ΟΝΟΜΑ ΤΗΣ ΚΑΙ ΟΧΙ ΑΠΟ ΤΗ ΘΕΣΗ ΤΗΣ
+# ==================================================
+
 def process_sales_df(
     df,
     file_name=""
@@ -892,9 +878,11 @@ def process_sales_df(
             1.0
         )
 
-
     custom_title = "ΕΙΔΟΣ"
 
+    # ==================================================
+    # ΕΝΤΟΠΙΣΜΟΣ ΤΙΤΛΟΥ
+    # ==================================================
 
     for i in range(
         min(
@@ -911,58 +899,92 @@ def process_sales_df(
                 df.iloc[i, j]
             ).strip()
 
+            normalized_val = (
+                normalize_text(val)
+            )
+
             if (
                 val
                 and
-                val.lower() != "nan"
+                normalized_val != "nan"
                 and
-                not "κατάστημα"
-                in val.lower()
+                "καταστημα"
+                not in normalized_val
                 and
-                not "πληρωτ"
-                in val.lower()
+                "πληρωτ"
+                not in normalized_val
                 and
-                not "ποσοτ"
-                in val.lower()
+                "ποσοτ"
+                not in normalized_val
                 and
-                not "αξια"
-                in val.lower()
+                "αξια"
+                not in normalized_val
                 and
-                not "κοστος"
-                in val.lower()
+                "κοστος"
+                not in normalized_val
             ):
 
                 custom_title = val
                 break
 
-
         if custom_title != "ΕΙΔΟΣ":
             break
 
+    # ==================================================
+    # ΒΡΙΣΚΕΙ ΤΗ ΓΡΑΜΜΗ ΕΠΙΚΕΦΑΛΙΔΩΝ
+    # ΨΑΧΝΕΙ ΣΕ ΟΛΟ ΤΟ EXCEL
+    # ==================================================
 
-    header_row_idx = 0
+    header_row_idx = None
 
+    for i in range(len(df)):
 
-    for i in range(
-        min(
-            5,
-            len(df)
+        row_values = [
+            normalize_text(value)
+            for value in df.iloc[i].values
+        ]
+
+        has_store = any(
+            "καταστημα" in value
+            for value in row_values
         )
-    ):
 
-        row_str = str(
-            df.iloc[i].values
-        ).lower()
+        has_quantity = any(
+            (
+                "ποσοτητα" in value
+                or
+                "ποσοτ" in value
+            )
+            for value in row_values
+        )
 
         if (
-            "κατάστημα" in row_str
-            or
-            "καταστημα" in row_str
+            has_store
+            and
+            has_quantity
         ):
 
             header_row_idx = i
             break
 
+    if header_row_idx is None:
+
+        st.error(
+            f"Δεν βρέθηκε γραμμή με "
+            f"ΚΑΤΑΣΤΗΜΑ και ΠΟΣΟΤΗΤΑ "
+            f"στο αρχείο {file_name}"
+        )
+
+        return (
+            custom_title,
+            pd.DataFrame(),
+            0.0,
+            1.0
+        )
+
+    # ==================================================
+    # ΟΡΙΣΜΟΣ ΕΠΙΚΕΦΑΛΙΔΩΝ
+    # ==================================================
 
     df.columns = (
         df.iloc[
@@ -971,7 +993,6 @@ def process_sales_df(
         .astype(str)
         .str.strip()
     )
-
 
     df = (
         df.iloc[
@@ -982,66 +1003,121 @@ def process_sales_df(
         )
     )
 
+    # ==================================================
+    # ΒΡΙΣΚΕΙ ΤΗ ΣΤΗΛΗ ΚΑΤΑΣΤΗΜΑ
+    # ΟΠΟΥ ΚΑΙ ΑΝ ΒΡΙΣΚΕΤΑΙ
+    # ==================================================
 
-    store_col = df.columns[0]
+    store_col = None
 
+    for col in df.columns:
 
-    is_prosfores = (
-        "προσφορ"
-        in custom_title.lower()
-        or
-        "προσφορ"
-        in file_name.lower()
-        or
-        (
-            "προσφορ"
-            in excel_path_1.lower()
-            and
-            file_name == excel_path_1
-        )
-    )
-
-
-    target_col_idx = (
-        1
-        if is_prosfores
-        else 1
-    )
-
-
-    if len(df.columns) > target_col_idx:
-
-        value_col = (
-            df.columns[
-                target_col_idx
-            ]
+        normalized_col = (
+            normalize_text(col)
         )
 
-    else:
+        if "καταστημα" in normalized_col:
 
-        value_col = (
-            df.columns[1]
-            if len(df.columns) > 1
-            else df.columns[0]
+            store_col = col
+            break
+
+    # ==================================================
+    # ΒΡΙΣΚΕΙ ΤΗ ΣΤΗΛΗ ΠΟΣΟΤΗΤΑ
+    # ΟΠΟΥ ΚΑΙ ΑΝ ΒΡΙΣΚΕΤΑΙ
+    # ==================================================
+
+    quantity_col = None
+
+    # Πρώτα ψάχνουμε ακριβώς "ΠΟΣΟΤΗΤΑ"
+    for col in df.columns:
+
+        normalized_col = (
+            normalize_text(col)
         )
 
+        if normalized_col == "ποσοτητα":
+
+            quantity_col = col
+            break
+
+    # Μετά παραλλαγές όπως
+    # "ΠΟΣΟΤΗΤΑ ΠΩΛΗΣΕΩΝ"
+    if quantity_col is None:
+
+        for col in df.columns:
+
+            normalized_col = (
+                normalize_text(col)
+            )
+
+            if "ποσοτητα" in normalized_col:
+
+                quantity_col = col
+                break
+
+    # Και τέλος πιθανό "ΠΟΣΟΤ."
+    if quantity_col is None:
+
+        for col in df.columns:
+
+            normalized_col = (
+                normalize_text(col)
+            )
+
+            if "ποσοτ" in normalized_col:
+
+                quantity_col = col
+                break
+
+    if store_col is None:
+
+        st.error(
+            f"Δεν βρέθηκε η στήλη "
+            f"ΚΑΤΑΣΤΗΜΑ "
+            f"στο αρχείο {file_name}"
+        )
+
+        return (
+            custom_title,
+            pd.DataFrame(),
+            0.0,
+            1.0
+        )
+
+    if quantity_col is None:
+
+        st.error(
+            f"Δεν βρέθηκε η στήλη "
+            f"ΠΟΣΟΤΗΤΑ "
+            f"στο αρχείο {file_name}"
+        )
+
+        return (
+            custom_title,
+            pd.DataFrame(),
+            0.0,
+            1.0
+        )
+
+    # ==================================================
+    # ΚΡΑΤΑΜΕ ΜΟΝΟ:
+    # ΚΑΤΑΣΤΗΜΑ + ΠΟΣΟΤΗΤΑ
+    # ==================================================
 
     df_selected = (
         df[
             [
                 store_col,
-                value_col
+                quantity_col
             ]
         ]
         .copy()
     )
 
-
     df_selected.columns = [
         "Κατάστημα",
         "Ποσότητα"
     ]
-
 
     df_selected = (
         df_selected
@@ -1053,7 +1129,6 @@ def process_sales_df(
         )
     )
 
-
     df_selected[
         "Κατάστημα"
     ] = (
@@ -1063,7 +1138,6 @@ def process_sales_df(
         .astype(str)
         .str.strip()
     )
-
 
     df_selected = (
         df_selected[
@@ -1077,7 +1151,6 @@ def process_sales_df(
             )
         ]
     )
-
 
     df_clean = (
         df_selected[
@@ -1093,6 +1166,9 @@ def process_sales_df(
         .copy()
     )
 
+    # ==================================================
+    # ΜΕΤΑΤΡΟΠΗ ΠΟΣΟΤΗΤΑΣ ΣΕ ΑΡΙΘΜΟ
+    # ==================================================
 
     df_clean[
         "Num_Sales"
@@ -1105,6 +1181,9 @@ def process_sales_df(
         )
     )
 
+    # ==================================================
+    # ΤΑΞΙΝΟΜΗΣΗ
+    # ==================================================
 
     df_stores = (
         df_clean
@@ -1112,9 +1191,10 @@ def process_sales_df(
             by="Num_Sales",
             ascending=False
         )
-        .reset_index(drop=True)
+        .reset_index(
+            drop=True
+        )
     )
-
 
     total_sum = (
         df_stores[
@@ -1122,7 +1202,6 @@ def process_sales_df(
         ]
         .sum()
     )
-
 
     max_sales = (
         df_stores[
@@ -1134,7 +1213,6 @@ def process_sales_df(
         else
         1.0
     )
-
 
     return (
         custom_title,
@@ -1435,11 +1513,9 @@ def filter_dataframe(df_stores):
             0.0
         )
 
-
     filtered_df = (
         df_stores.copy()
     )
-
 
     if active_filter:
 
@@ -1461,7 +1537,6 @@ def filter_dataframe(df_stores):
                 ]
             )
 
-
             filtered_df = (
                 filtered_df[
                     filtered_df[
@@ -1476,7 +1551,6 @@ def filter_dataframe(df_stores):
                     )
                 ]
             )
-
 
         else:
 
@@ -1493,14 +1567,12 @@ def filter_dataframe(df_stores):
                 ]
             )
 
-
     total_sum = (
         filtered_df[
             "Num_Sales"
         ]
         .sum()
     )
-
 
     return (
         filtered_df
@@ -1820,8 +1892,6 @@ try:
 
     }}
 
-
-    /* UPDATE SALES - ΜΙΚΡΟΤΕΡΟ */
 
     .top-left-subtext {{
 
