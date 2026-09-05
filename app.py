@@ -6,9 +6,6 @@ import os
 import unicodedata
 from io import BytesIO
 
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment
-
 import pandas as pd
 import requests
 import streamlit as st
@@ -1626,211 +1623,136 @@ df_stores_2, total_sum_2 = (
 # ΜΙΚΡΟ ΚΟΥΜΠΙ ΔΙΠΛΑ ΣΤΗΝ ΠΕΡΙΦΕΡΕΙΑ
 # ==================================================
 
-def safe_excel_sheet_name(name, fallback="ΕΙΔΟΣ"):
+def prepare_export_df(df_stores, total_sum):
 
-    # Το Excel δεν επιτρέπει: \\ / ? * [ ] :
-    invalid_chars = ['\\', '/', '?', '*', '[', ']', ':']
+    if df_stores.empty:
 
-    clean_name = str(name).strip()
-
-    for char in invalid_chars:
-        clean_name = clean_name.replace(char, ' ')
-
-    clean_name = ' '.join(clean_name.split())
-
-    if not clean_name:
-        clean_name = fallback
-
-    return clean_name[:31]
-
-
-def write_product_sheet(
-    ws,
-    item_title,
-    df_stores,
-    total_sum,
-    region_name,
-    report_date,
-    report_time
-):
-
-    # ==================================================
-    # ΤΙΤΛΟΣ ΕΙΔΟΥΣ
-    # ==================================================
-
-    ws.merge_cells("A1:B1")
-    ws["A1"] = f"ΕΙΔΟΣ: {item_title}"
-    ws["A1"].font = Font(bold=True, size=14)
-    ws["A1"].alignment = Alignment(horizontal="center")
-
-    # ==================================================
-    # ΕΠΙΚΕΦΑΛΙΔΕΣ
-    # ==================================================
-
-    ws["A3"] = "Κατάστημα"
-    ws["B3"] = "Ποσότητα"
-    ws["A3"].font = Font(bold=True)
-    ws["B3"].font = Font(bold=True)
-
-    current_row = 4
-
-    # ==================================================
-    # ΔΕΔΟΜΕΝΑ
-    # ==================================================
-
-    if not df_stores.empty:
-
-        for _, row in df_stores.iterrows():
-
-            store_name = str(
-                row["Κατάστημα"]
-            ).strip()
-
-            if (
-                not store_name
-                or store_name.lower() == "nan"
-            ):
-                continue
-
-            ws.cell(
-                row=current_row,
-                column=1,
-                value=store_name
-            )
-
-            ws.cell(
-                row=current_row,
-                column=2,
-                value=float(row["Num_Sales"])
-            )
-
-            current_row += 1
-
-    # ==================================================
-    # TOTAL
-    # ==================================================
-
-    ws.cell(
-        row=current_row,
-        column=1,
-        value="TOTAL"
-    )
-
-    ws.cell(
-        row=current_row,
-        column=2,
-        value=float(total_sum)
-    )
-
-    ws.cell(
-        row=current_row,
-        column=1
-    ).font = Font(bold=True)
-
-    ws.cell(
-        row=current_row,
-        column=2
-    ).font = Font(bold=True)
-
-    # ==================================================
-    # ΠΛΗΡΟΦΟΡΙΕΣ ΚΑΤΩ ΑΠΟ ΤΟ TOTAL
-    # ==================================================
-
-    current_row += 2
-
-    info_rows = [
-        ("ΠΕΡΙΦΕΡΕΙΑ", str(region_name).upper()),
-        ("ΗΜΕΡΟΜΗΝΙΑ", str(report_date)),
-        ("ΩΡΑ", str(report_time)),
-    ]
-
-    for label, value in info_rows:
-
-        ws.cell(
-            row=current_row,
-            column=1,
-            value=label
+        export_df = pd.DataFrame(
+            columns=[
+                "Κατάστημα",
+                "Ποσότητα"
+            ]
         )
 
-        ws.cell(
-            row=current_row,
-            column=2,
-            value=value
+    else:
+
+        export_df = (
+            df_stores[
+                [
+                    "Κατάστημα",
+                    "Num_Sales"
+                ]
+            ]
+            .copy()
         )
 
-        ws.cell(
-            row=current_row,
-            column=1
-        ).font = Font(bold=True)
+        export_df.columns = [
+            "Κατάστημα",
+            "Ποσότητα"
+        ]
 
-        current_row += 1
+    total_row = pd.DataFrame(
+        [
+            {
+                "Κατάστημα": "TOTAL",
+                "Ποσότητα": total_sum,
+            }
+        ]
+    )
 
-    # ==================================================
-    # ΠΛΑΤΗ ΣΤΗΛΩΝ
-    # ==================================================
-
-    ws.column_dimensions["A"].width = 42
-    ws.column_dimensions["B"].width = 20
+    return pd.concat(
+        [
+            export_df,
+            total_row
+        ],
+        ignore_index=True
+    )
 
 
 def build_excel_file():
 
     output = BytesIO()
 
-    sheet_name_1 = safe_excel_sheet_name(
-        title_1,
-        "ΕΙΔΟΣ 1"
+    export_1 = prepare_export_df(
+        df_stores_1,
+        total_sum_1
     )
 
-    sheet_name_2 = safe_excel_sheet_name(
-        title_2,
-        "ΕΙΔΟΣ 2"
+    export_2 = prepare_export_df(
+        df_stores_2,
+        total_sum_2
     )
 
-    # Αν τα δύο είδη έχουν το ίδιο όνομα,
-    # δίνουμε διαφορετικό όνομα στο δεύτερο φύλλο.
-    if sheet_name_2.lower() == sheet_name_1.lower():
+    summary_df = pd.DataFrame(
+        [
+            ["Περιφέρεια", selected_region.upper()],
+            ["Ημερομηνία", file_date_str],
+            ["Ώρα", file_time_str],
+            ["Προϊόν 1", title_1],
+            ["Προϊόν 2", title_2],
+        ],
+        columns=[
+            "Πεδίο",
+            "Τιμή"
+        ]
+    )
 
-        suffix = " 2"
+    with pd.ExcelWriter(
+        output,
+        engine="openpyxl"
+    ) as writer:
 
-        sheet_name_2 = (
-            sheet_name_2[:31 - len(suffix)]
-            + suffix
+        summary_df.to_excel(
+            writer,
+            sheet_name="Σύνοψη",
+            index=False
         )
 
-    # Δημιουργούμε workbook με ΑΚΡΙΒΩΣ δύο φύλλα.
-    workbook = Workbook()
+        export_1.to_excel(
+            writer,
+            sheet_name="Προϊόν 1",
+            index=False
+        )
 
-    # Το πρώτο και μοναδικό αρχικό φύλλο γίνεται το είδος 1.
-    ws_1 = workbook.active
-    ws_1.title = sheet_name_1
+        export_2.to_excel(
+            writer,
+            sheet_name="Προϊόν 2",
+            index=False
+        )
 
-    # Δημιουργείται μόνο ένα επιπλέον φύλλο: το είδος 2.
-    ws_2 = workbook.create_sheet(
-        title=sheet_name_2
-    )
+        for sheet_name in [
+            "Σύνοψη",
+            "Προϊόν 1",
+            "Προϊόν 2"
+        ]:
 
-    write_product_sheet(
-        ws_1,
-        title_1,
-        df_stores_1,
-        total_sum_1,
-        selected_region,
-        file_date_str,
-        file_time_str
-    )
+            ws = writer.book[sheet_name]
 
-    write_product_sheet(
-        ws_2,
-        title_2,
-        df_stores_2,
-        total_sum_2,
-        selected_region,
-        file_date_str,
-        file_time_str
-    )
+            for column_cells in ws.columns:
 
-    workbook.save(output)
+                max_length = 0
+                column_letter = column_cells[0].column_letter
+
+                for cell in column_cells:
+
+                    cell_value = (
+                        ""
+                        if cell.value is None
+                        else str(cell.value)
+                    )
+
+                    max_length = max(
+                        max_length,
+                        len(cell_value)
+                    )
+
+                ws.column_dimensions[
+                    column_letter
+                ].width = min(
+                    max_length + 3,
+                    45
+                )
+
     output.seek(0)
 
     return output.getvalue()
@@ -1849,8 +1771,8 @@ try:
         label="⬇ XLSX",
         data=excel_data,
         file_name=(
-            f"EXCEL_V2_2_FYLLA_{safe_region_name}_"
-            f"{datetime.date.today().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            f"sales_{safe_region_name}_"
+            f"{datetime.date.today().strftime('%Y%m%d')}.xlsx"
         ),
         mime=(
             "application/vnd.openxmlformats-officedocument."
