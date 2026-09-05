@@ -1734,6 +1734,55 @@ def prepare_export_df(df_stores, total_sum):
     )
 
 
+def safe_excel_sheet_name(name, fallback):
+
+    invalid_chars = ['\\', '/', '*', '?', ':', '[', ']']
+
+    safe_name = str(name).strip()
+
+    for char in invalid_chars:
+        safe_name = safe_name.replace(char, " ")
+
+    safe_name = " ".join(safe_name.split())
+
+    if not safe_name:
+        safe_name = fallback
+
+    return safe_name[:31]
+
+
+def add_report_info_after_total(export_df):
+
+    info_rows = pd.DataFrame(
+        [
+            {
+                "Κατάστημα": "",
+                "Ποσότητα": ""
+            },
+            {
+                "Κατάστημα": "ΠΕΡΙΦΕΡΕΙΑ",
+                "Ποσότητα": selected_region.upper()
+            },
+            {
+                "Κατάστημα": "ΗΜΕΡΟΜΗΝΙΑ",
+                "Ποσότητα": file_date_str
+            },
+            {
+                "Κατάστημα": "ΩΡΑ",
+                "Ποσότητα": file_time_str
+            },
+        ]
+    )
+
+    return pd.concat(
+        [
+            export_df,
+            info_rows
+        ],
+        ignore_index=True
+    )
+
+
 def build_excel_file():
 
     output = BytesIO()
@@ -1748,47 +1797,48 @@ def build_excel_file():
         total_sum_2
     )
 
-    summary_df = pd.DataFrame(
-        [
-            ["Περιφέρεια", selected_region.upper()],
-            ["Ημερομηνία", file_date_str],
-            ["Ώρα", file_time_str],
-            ["Προϊόν 1", title_1],
-            ["Προϊόν 2", title_2],
-        ],
-        columns=[
-            "Πεδίο",
-            "Τιμή"
-        ]
+    # Μετά το TOTAL:
+    # ΠΕΡΙΦΕΡΕΙΑ - ΗΜΕΡΟΜΗΝΙΑ - ΩΡΑ
+    export_1 = add_report_info_after_total(export_1)
+    export_2 = add_report_info_after_total(export_2)
+
+    # Τα φύλλα παίρνουν τα πραγματικά ονόματα των δύο ειδών.
+    sheet_1 = safe_excel_sheet_name(
+        title_1,
+        "Είδος 1"
     )
+
+    sheet_2 = safe_excel_sheet_name(
+        title_2,
+        "Είδος 2"
+    )
+
+    if sheet_2 == sheet_1:
+        base = sheet_2[:27]
+        sheet_2 = f"{base} (2)"
 
     with pd.ExcelWriter(
         output,
         engine="openpyxl"
     ) as writer:
 
-        summary_df.to_excel(
-            writer,
-            sheet_name="Σύνοψη",
-            index=False
-        )
-
+        # ΜΟΝΟ δύο φύλλα:
+        # [Όνομα 1ου είδους] | [Όνομα 2ου είδους]
         export_1.to_excel(
             writer,
-            sheet_name="Προϊόν 1",
+            sheet_name=sheet_1,
             index=False
         )
 
         export_2.to_excel(
             writer,
-            sheet_name="Προϊόν 2",
+            sheet_name=sheet_2,
             index=False
         )
 
         for sheet_name in [
-            "Σύνοψη",
-            "Προϊόν 1",
-            "Προϊόν 2"
+            sheet_1,
+            sheet_2
         ]:
 
             ws = writer.book[sheet_name]
@@ -1823,7 +1873,7 @@ def build_excel_file():
     return output.getvalue()
 
 
-excel_download_b64 = ""
+excel_data = None
 excel_download_filename = "sales.xlsx"
 
 try:
@@ -1840,12 +1890,8 @@ try:
         f"{datetime.date.today().strftime('%Y%m%d')}.xlsx"
     )
 
-    excel_download_b64 = (
-        base64.b64encode(excel_data).decode("utf-8")
-    )
-
 except Exception:
-    excel_download_b64 = ""
+    excel_data = None
 
 
 # ==================================================
@@ -3148,33 +3194,7 @@ try:
     # WATERMARK
     # ==================================================
 
-    excel_bottom_html = ""
-
-    if excel_download_b64:
-
-        excel_bottom_html = f"""
-            <a
-                class="excel-bottom-btn"
-                href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{excel_download_b64}"
-                download="{excel_download_filename}"
-                title="Λήψη Excel"
-            >
-                ⬇ XLSX
-            </a>
-        """
-
-
-    html_content += f"""
-
-            <div class="footer-tools">
-
-                <div class="watermark">
-                    tosounidis 2026
-                </div>
-
-                {excel_bottom_html}
-
-            </div>
+    html_content += """
 
         </div>
 
@@ -3188,6 +3208,53 @@ try:
         height=1200,
         scrolling=True
     )
+
+    # ==================================================
+    # ΚΑΤΩ ΜΠΑΡΑ: ΥΔΑΤΟΓΡΑΦΗΜΑ + XLSX
+    # Το κουμπί είναι κανονικό Streamlit download_button,
+    # ώστε να διατηρείται πλήρως η δομή του Excel και τα φύλλα.
+    # ==================================================
+
+    bottom_left, bottom_excel, bottom_space = st.columns(
+        [1.25, 0.85, 7.90],
+        gap="small"
+    )
+
+    with bottom_left:
+        st.markdown(
+            """
+            <div style="
+                color: rgba(255,255,255,0.22);
+                font-size: 12px;
+                font-weight: 600;
+                letter-spacing: 1px;
+                padding-top: 8px;
+                white-space: nowrap;
+            ">
+                tosounidis 2026
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with bottom_excel:
+
+        if excel_data is not None:
+
+            st.download_button(
+                label="⬇ XLSX",
+                data=excel_data,
+                file_name=excel_download_filename,
+                mime=(
+                    "application/vnd.openxmlformats-officedocument."
+                    "spreadsheetml.sheet"
+                ),
+                key="download_current_sales_xlsx_bottom",
+                use_container_width=True,
+            )
+
+        else:
+            st.caption("XLSX error")
 
 
 except Exception as e:
