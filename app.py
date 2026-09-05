@@ -4,6 +4,7 @@ import glob
 import json
 import os
 import unicodedata
+from io import BytesIO
 
 import pandas as pd
 import requests
@@ -240,6 +241,15 @@ st.markdown(
     div[data-testid="stSelectbox"]
     div[data-baseweb="select"] {
         flex-grow: 1 !important;
+    }
+
+    div[data-testid="stDownloadButton"] > button {
+        min-height: 38px !important;
+        height: 38px !important;
+        padding: 0 10px !important;
+        font-size: 11px !important;
+        font-weight: 800 !important;
+        white-space: nowrap !important;
     }
 
     </style>
@@ -670,12 +680,25 @@ with col_input_space:
         "πουτογλιδης",
     ]
 
-    selected_region = st.selectbox(
-        "📍 ΠΕΡΙΦΕΡΕΙΑ",
-        options=region_options,
-        index=0,
-        format_func=lambda x: x.upper(),
-    )
+    col_region_select, col_excel_button = st.columns([8, 1])
+
+    with col_region_select:
+
+        selected_region = st.selectbox(
+            "📍 ΠΕΡΙΦΕΡΕΙΑ",
+            options=region_options,
+            index=0,
+            format_func=lambda x: x.upper(),
+        )
+
+    with col_excel_button:
+
+        st.markdown(
+            "<div style='height: 27px;'></div>",
+            unsafe_allow_html=True,
+        )
+
+        excel_button_slot = st.empty()
 
     active_filter = (
         selected_region.lower()
@@ -1593,6 +1616,176 @@ df_stores_2, total_sum_2 = (
         df_stores_2
     )
 )
+
+
+# ==================================================
+# ΕΞΑΓΩΓΗ ΤΡΕΧΟΥΣΑΣ ΠΛΗΡΟΦΟΡΙΑΣ ΣΕ EXCEL
+# ΜΙΚΡΟ ΚΟΥΜΠΙ ΔΙΠΛΑ ΣΤΗΝ ΠΕΡΙΦΕΡΕΙΑ
+# ==================================================
+
+def prepare_export_df(df_stores, total_sum):
+
+    if df_stores.empty:
+
+        export_df = pd.DataFrame(
+            columns=[
+                "Κατάστημα",
+                "Ποσότητα"
+            ]
+        )
+
+    else:
+
+        export_df = (
+            df_stores[
+                [
+                    "Κατάστημα",
+                    "Num_Sales"
+                ]
+            ]
+            .copy()
+        )
+
+        export_df.columns = [
+            "Κατάστημα",
+            "Ποσότητα"
+        ]
+
+    total_row = pd.DataFrame(
+        [
+            {
+                "Κατάστημα": "TOTAL",
+                "Ποσότητα": total_sum,
+            }
+        ]
+    )
+
+    return pd.concat(
+        [
+            export_df,
+            total_row
+        ],
+        ignore_index=True
+    )
+
+
+def build_excel_file():
+
+    output = BytesIO()
+
+    export_1 = prepare_export_df(
+        df_stores_1,
+        total_sum_1
+    )
+
+    export_2 = prepare_export_df(
+        df_stores_2,
+        total_sum_2
+    )
+
+    summary_df = pd.DataFrame(
+        [
+            ["Περιφέρεια", selected_region.upper()],
+            ["Ημερομηνία", file_date_str],
+            ["Ώρα", file_time_str],
+            ["Προϊόν 1", title_1],
+            ["Προϊόν 2", title_2],
+        ],
+        columns=[
+            "Πεδίο",
+            "Τιμή"
+        ]
+    )
+
+    with pd.ExcelWriter(
+        output,
+        engine="openpyxl"
+    ) as writer:
+
+        summary_df.to_excel(
+            writer,
+            sheet_name="Σύνοψη",
+            index=False
+        )
+
+        export_1.to_excel(
+            writer,
+            sheet_name="Προϊόν 1",
+            index=False
+        )
+
+        export_2.to_excel(
+            writer,
+            sheet_name="Προϊόν 2",
+            index=False
+        )
+
+        for sheet_name in [
+            "Σύνοψη",
+            "Προϊόν 1",
+            "Προϊόν 2"
+        ]:
+
+            ws = writer.book[sheet_name]
+
+            for column_cells in ws.columns:
+
+                max_length = 0
+                column_letter = column_cells[0].column_letter
+
+                for cell in column_cells:
+
+                    cell_value = (
+                        ""
+                        if cell.value is None
+                        else str(cell.value)
+                    )
+
+                    max_length = max(
+                        max_length,
+                        len(cell_value)
+                    )
+
+                ws.column_dimensions[
+                    column_letter
+                ].width = min(
+                    max_length + 3,
+                    45
+                )
+
+    output.seek(0)
+
+    return output.getvalue()
+
+
+try:
+
+    excel_data = build_excel_file()
+
+    safe_region_name = (
+        normalize_text(selected_region)
+        .replace(" ", "_")
+    )
+
+    excel_button_slot.download_button(
+        label="⬇ XLSX",
+        data=excel_data,
+        file_name=(
+            f"sales_{safe_region_name}_"
+            f"{datetime.date.today().strftime('%Y%m%d')}.xlsx"
+        ),
+        mime=(
+            "application/vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        ),
+        key="download_current_sales_xlsx",
+    )
+
+except Exception as excel_error:
+
+    excel_button_slot.caption(
+        "XLSX error"
+    )
 
 
 # ==================================================
