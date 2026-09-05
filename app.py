@@ -3245,35 +3245,58 @@ try:
                 excel_data
             ).decode("utf-8")
 
-            st.markdown(
+            components.html(
                 f"""
-                <a
-                    href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{excel_b64}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download="{excel_download_filename}"
-                    style="
-                        display:flex;
-                        align-items:center;
-                        justify-content:center;
-                        width:100%;
-                        min-height:38px;
-                        padding:0 8px;
-                        border-radius:8px;
-                        border:1px solid rgba(255,255,255,0.25);
-                        background:#ffffff;
-                        color:#2c3e50;
-                        font-size:11px;
-                        font-weight:800;
-                        text-decoration:none;
-                        box-sizing:border-box;
-                        white-space:nowrap;
-                    "
-                >
-                    ⬇ XLSX
-                </a>
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <style>
+                        html, body {{
+                            margin: 0;
+                            padding: 0;
+                            background: transparent;
+                            overflow: hidden;
+                            font-family: Arial, sans-serif;
+                        }}
+
+                        .xlsx-btn {{
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            width: 100%;
+                            height: 38px;
+                            padding: 0 8px;
+                            border-radius: 8px;
+                            border: 1px solid rgba(255,255,255,0.25);
+                            background: #ffffff;
+                            color: #2c3e50;
+                            font-size: 11px;
+                            font-weight: 800;
+                            text-decoration: none;
+                            box-sizing: border-box;
+                            white-space: nowrap;
+                            cursor: pointer;
+                        }}
+                    </style>
+                </head>
+                <body>
+
+                    <a
+                        class="xlsx-btn"
+                        href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{excel_b64}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download="{excel_download_filename}"
+                    >
+                        ⬇ XLSX
+                    </a>
+
+                </body>
+                </html>
                 """,
-                unsafe_allow_html=True,
+                height=42,
+                scrolling=False,
             )
 
         else:
