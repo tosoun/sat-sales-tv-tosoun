@@ -1596,25 +1596,53 @@ df_stores_2, total_sum_2 = (
 
 
 # ==================================================
-# BANNER
+# BANNER - ΝΕΟ / 5 ΣΕΠΤΕΜΒΡΙΟΥ
 # ==================================================
 
 img_src = ""
 
-
+# Ψάχνει εικόνες/GIF που μπορούν να χρησιμοποιηθούν ως banner.
+# Αν υπάρχουν περισσότερα από ένα, επιλέγει αυτό που τροποποιήθηκε πιο πρόσφατα.
 banner_files = (
     glob.glob("ChatGPT Image*.png")
-    +
-    glob.glob("*banner*.jpg")
-    +
-    glob.glob("*banner*.png")
+    + glob.glob("ChatGPT Image*.jpg")
+    + glob.glob("ChatGPT Image*.jpeg")
+    + glob.glob("ChatGPT Image*.gif")
+    + glob.glob("*banner*.jpg")
+    + glob.glob("*banner*.jpeg")
+    + glob.glob("*banner*.png")
+    + glob.glob("*banner*.gif")
+    + glob.glob("*ΣΦΥΡΙ*.gif")
+    + glob.glob("*σφυρι*.gif")
+    + glob.glob("*sfyri*.gif")
+    + glob.glob("*hammer*.gif")
 )
 
+# Αφαιρούμε τυχόν διπλοεγγραφές
+banner_files = list(dict.fromkeys(banner_files))
 
 if banner_files:
 
-    banner_filename = (
-        banner_files[0]
+    # Πάντα το νεότερο αρχείο
+    banner_filename = max(
+        banner_files,
+        key=os.path.getmtime
+    )
+
+    extension = os.path.splitext(
+        banner_filename
+    )[1].lower()
+
+    mime_types = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+    }
+
+    mime_type = mime_types.get(
+        extension,
+        "image/png"
     )
 
     with open(
@@ -1623,7 +1651,7 @@ if banner_files:
     ) as image_file:
 
         img_src = (
-            f"data:image/png;base64,"
+            f"data:{mime_type};base64,"
             f"{base64.b64encode(image_file.read()).decode()}"
         )
 
