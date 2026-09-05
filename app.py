@@ -1801,20 +1801,23 @@ try:
 
     .rotate-hint-overlay {{
 
-        position: absolute;
+        position: relative;
 
-        bottom: 8px;
-        right: 12px;
+        width: 100%;
 
         display: flex;
+
+        justify-content: flex-end;
 
         align-items: center;
 
         gap: 5px;
 
-        background: transparent;
+        background: rgba(0, 0, 0, 0.6);
 
-        padding: 0;
+        padding: 5px 12px;
+
+        box-sizing: border-box;
 
     }}
 
@@ -2184,24 +2187,24 @@ try:
             >
 
 
-            <div
-                class="rotate-hint-overlay"
+        </div>
+
+
+        <div
+            class="rotate-hint-overlay"
+        >
+
+            <span
+                class="phone-icon-wrap"
             >
+                📱
+            </span>
 
-                <span
-                    class="phone-icon-wrap"
-                >
-                    📱
-                </span>
-
-                <span
-                    class="turn-mobile-text"
-                >
-                    TURN MOBILE
-                </span>
-
-            </div>
-
+            <span
+                class="turn-mobile-text"
+            >
+                TURN MOBILE
+            </span>
 
         </div>
 
