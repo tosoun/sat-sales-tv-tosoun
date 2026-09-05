@@ -43,11 +43,14 @@ st.markdown(
     }
 
     /* ==================================================
-       MOBILE RESPONSIVE
-       Σε κινητά οι στήλες μπαίνουν η μία κάτω από την άλλη.
-       Η εμφάνιση desktop παραμένει ακριβώς όπως είναι.
+       MOBILE RESPONSIVE v2
+       Πειράζουμε ΜΟΝΟ την επάνω κύρια σειρά (Admin + Περιφέρεια).
+       Δεν πειράζουμε τις εσωτερικές στήλες, ώστε το XLSX να μένει
+       δίπλα στην επιλογή Περιφέρειας.
        ================================================== */
-    @media (max-width: 1024px) {
+
+    /* Κάθετη προβολή κινητού */
+    @media (max-width: 600px) {
 
         .block-container {
             padding: 0rem 0.35rem !important;
@@ -55,14 +58,15 @@ st.markdown(
             max-width: 100% !important;
         }
 
-        div[data-testid="stHorizontalBlock"] {
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stExpander"]) {
             flex-direction: column !important;
             align-items: stretch !important;
-            gap: 0.55rem !important;
+            gap: 0.65rem !important;
             width: 100% !important;
         }
 
-        div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stExpander"])
+        > div[data-testid="column"] {
             width: 100% !important;
             min-width: 100% !important;
             max-width: 100% !important;
@@ -73,13 +77,37 @@ st.markdown(
             width: 100% !important;
         }
 
-        div[data-testid="stSelectbox"] {
-            width: 100% !important;
+        /* Η εσωτερική σειρά Περιφέρεια + XLSX παραμένει οριζόντια */
+        div[data-testid="stHorizontalBlock"]
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: row !important;
+            align-items: center !important;
         }
 
-        div[data-testid="stDownloadButton"],
-        div[data-testid="stDownloadButton"] > button {
+        div[data-testid="stHorizontalBlock"]
+        div[data-testid="stHorizontalBlock"]
+        > div[data-testid="column"] {
+            min-width: 0 !important;
+        }
+    }
+
+    /* Οριζόντια προβολή κινητού/tablet:
+       κρατάμε την κανονική desktop διάταξη */
+    @media (min-width: 601px) and (max-width: 1100px) {
+
+        .block-container {
+            padding: 0rem 0.5rem !important;
             width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: row !important;
+            align-items: center !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+            min-width: 0 !important;
         }
     }
     </style>
