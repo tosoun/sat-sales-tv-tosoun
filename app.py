@@ -3241,16 +3241,39 @@ try:
 
         if excel_data is not None:
 
-            st.download_button(
-                label="⬇ XLSX",
-                data=excel_data,
-                file_name=excel_download_filename,
-                mime=(
-                    "application/vnd.openxmlformats-officedocument."
-                    "spreadsheetml.sheet"
-                ),
-                key="download_current_sales_xlsx_bottom",
-                use_container_width=True,
+            excel_b64 = base64.b64encode(
+                excel_data
+            ).decode("utf-8")
+
+            st.markdown(
+                f"""
+                <a
+                    href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{excel_b64}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download="{excel_download_filename}"
+                    style="
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        width:100%;
+                        min-height:38px;
+                        padding:0 8px;
+                        border-radius:8px;
+                        border:1px solid rgba(255,255,255,0.25);
+                        background:#ffffff;
+                        color:#2c3e50;
+                        font-size:11px;
+                        font-weight:800;
+                        text-decoration:none;
+                        box-sizing:border-box;
+                        white-space:nowrap;
+                    "
+                >
+                    ⬇ XLSX
+                </a>
+                """,
+                unsafe_allow_html=True,
             )
 
         else:
