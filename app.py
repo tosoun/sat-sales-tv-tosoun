@@ -43,71 +43,117 @@ st.markdown(
     }
 
     /* ==================================================
-       MOBILE RESPONSIVE v2
-       Πειράζουμε ΜΟΝΟ την επάνω κύρια σειρά (Admin + Περιφέρεια).
-       Δεν πειράζουμε τις εσωτερικές στήλες, ώστε το XLSX να μένει
-       δίπλα στην επιλογή Περιφέρειας.
+       MOBILE COMPACT v3
+       Admin + Περιφέρεια μένουν στην ΙΔΙΑ γραμμή.
+       Τα δύο πλαίσια μικραίνουν.
+       Το XLSX μπαίνει ακριβώς δίπλα στην Περιφέρεια.
        ================================================== */
 
-    /* Κάθετη προβολή κινητού */
-    @media (max-width: 600px) {
+    @media (max-width: 900px) {
 
         .block-container {
-            padding: 0rem 0.35rem !important;
-            width: 100% !important;
+            padding: 0rem 0.30rem !important;
             max-width: 100% !important;
+            width: 100% !important;
         }
 
+        /* ΚΥΡΙΑ ΣΕΙΡΑ: Admin αριστερά / Περιφέρεια δεξιά */
         div[data-testid="stHorizontalBlock"]:has(div[data-testid="stExpander"]) {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            gap: 0.65rem !important;
+            flex-direction: row !important;
+            align-items: flex-start !important;
+            gap: 0.35rem !important;
             width: 100% !important;
         }
 
+        /* Admin = πιο μικρό */
         div[data-testid="stHorizontalBlock"]:has(div[data-testid="stExpander"])
-        > div[data-testid="column"] {
-            width: 100% !important;
-            min-width: 100% !important;
-            max-width: 100% !important;
-            flex: 1 1 100% !important;
+        > div[data-testid="column"]:first-child {
+            flex: 0 0 42% !important;
+            width: 42% !important;
+            min-width: 0 !important;
+            max-width: 42% !important;
         }
 
+        /* Περιφέρεια = λίγο μεγαλύτερο */
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stExpander"])
+        > div[data-testid="column"]:nth-child(2) {
+            flex: 0 0 58% !important;
+            width: 58% !important;
+            min-width: 0 !important;
+            max-width: 58% !important;
+        }
+
+        /* Μικρότερο Admin expander */
         div[data-testid="stExpander"] {
             width: 100% !important;
         }
 
-        /* Η εσωτερική σειρά Περιφέρεια + XLSX παραμένει οριζόντια */
+        div[data-testid="stExpander"] details summary {
+            padding-left: 0.45rem !important;
+            padding-right: 0.45rem !important;
+            min-height: 42px !important;
+        }
+
+        div[data-testid="stExpander"] details summary p {
+            font-size: 12px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
+        /* Εσωτερική σειρά: Περιφέρεια + Excel δίπλα-δίπλα */
         div[data-testid="stHorizontalBlock"]
         div[data-testid="stHorizontalBlock"] {
             flex-direction: row !important;
-            align-items: center !important;
-        }
-
-        div[data-testid="stHorizontalBlock"]
-        div[data-testid="stHorizontalBlock"]
-        > div[data-testid="column"] {
-            min-width: 0 !important;
-        }
-    }
-
-    /* Οριζόντια προβολή κινητού/tablet:
-       κρατάμε την κανονική desktop διάταξη */
-    @media (min-width: 601px) and (max-width: 1100px) {
-
-        .block-container {
-            padding: 0rem 0.5rem !important;
+            align-items: flex-end !important;
+            gap: 0.25rem !important;
             width: 100% !important;
-            max-width: 100% !important;
         }
 
-        div[data-testid="stHorizontalBlock"] {
-            flex-direction: row !important;
-            align-items: center !important;
-        }
-
-        div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        /* Select Περιφέρειας */
+        div[data-testid="stHorizontalBlock"]
+        div[data-testid="stHorizontalBlock"]
+        > div[data-testid="column"]:first-child {
+            flex: 1 1 auto !important;
+            width: auto !important;
             min-width: 0 !important;
+        }
+
+        /* Excel button */
+        div[data-testid="stHorizontalBlock"]
+        div[data-testid="stHorizontalBlock"]
+        > div[data-testid="column"]:nth-child(2) {
+            flex: 0 0 72px !important;
+            width: 72px !important;
+            min-width: 72px !important;
+            max-width: 72px !important;
+        }
+
+        div[data-testid="stSelectbox"] {
+            width: 100% !important;
+        }
+
+        div[data-testid="stSelectbox"] label {
+            font-size: 11px !important;
+            gap: 4px !important;
+        }
+
+        div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+            min-height: 42px !important;
+            font-size: 12px !important;
+        }
+
+        div[data-testid="stDownloadButton"] {
+            width: 72px !important;
+        }
+
+        div[data-testid="stDownloadButton"] > button {
+            width: 72px !important;
+            min-width: 72px !important;
+            height: 42px !important;
+            min-height: 42px !important;
+            padding: 0 4px !important;
+            font-size: 10px !important;
         }
     }
     </style>
@@ -327,7 +373,7 @@ st.markdown(
 )
 
 
-col_admin, col_input_space = st.columns([4, 4])
+col_admin, col_input_space = st.columns([3, 5], gap="small")
 
 
 # ==================================================
@@ -749,7 +795,7 @@ with col_input_space:
         "πουτογλιδης",
     ]
 
-    col_region_select, col_excel_button = st.columns([8, 1])
+    col_region_select, col_excel_button = st.columns([6, 1], gap="small")
 
     with col_region_select:
 
@@ -763,7 +809,7 @@ with col_input_space:
     with col_excel_button:
 
         st.markdown(
-            "<div style='height: 27px;'></div>",
+            "<div style='height: 20px;'></div>",
             unsafe_allow_html=True,
         )
 
