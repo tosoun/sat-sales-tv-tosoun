@@ -1801,23 +1801,24 @@ try:
 
     .rotate-hint-overlay {{
 
-        position: relative;
+        position: absolute;
 
-        width: 100%;
+        top: 4px;
+        right: 12px;
 
         display: flex;
-
-        justify-content: flex-end;
 
         align-items: center;
 
         gap: 5px;
 
-        background: rgba(0, 0, 0, 0.6);
+        background: transparent;
 
-        padding: 5px 12px;
+        padding: 0;
 
-        box-sizing: border-box;
+        margin: 0;
+
+        z-index: 5;
 
     }}
 
@@ -1880,6 +1881,8 @@ try:
 
 
     .content-wrapper {{
+
+        position: relative;
 
         padding: 25px;
 
@@ -2190,26 +2193,26 @@ try:
         </div>
 
 
-        <div
-            class="rotate-hint-overlay"
-        >
-
-            <span
-                class="phone-icon-wrap"
-            >
-                📱
-            </span>
-
-            <span
-                class="turn-mobile-text"
-            >
-                TURN MOBILE
-            </span>
-
-        </div>
-
-
         <div class="content-wrapper">
+
+
+            <div
+                class="rotate-hint-overlay"
+            >
+
+                <span
+                    class="phone-icon-wrap"
+                >
+                    📱
+                </span>
+
+                <span
+                    class="turn-mobile-text"
+                >
+                    TURN MOBILE
+                </span>
+
+            </div>
 
 
             <audio
