@@ -41,6 +41,47 @@ st.markdown(
     div[data-testid="stHorizontalBlock"] {
         align-items: center !important;
     }
+
+    /* ==================================================
+       MOBILE RESPONSIVE
+       Σε κινητά οι στήλες μπαίνουν η μία κάτω από την άλλη.
+       Η εμφάνιση desktop παραμένει ακριβώς όπως είναι.
+       ================================================== */
+    @media (max-width: 1024px) {
+
+        .block-container {
+            padding: 0rem 0.35rem !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.55rem !important;
+            width: 100% !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+
+        div[data-testid="stExpander"] {
+            width: 100% !important;
+        }
+
+        div[data-testid="stSelectbox"] {
+            width: 100% !important;
+        }
+
+        div[data-testid="stDownloadButton"],
+        div[data-testid="stDownloadButton"] > button {
+            width: 100% !important;
+        }
+    }
     </style>
 
     <script>
