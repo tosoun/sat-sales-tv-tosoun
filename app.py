@@ -3303,6 +3303,30 @@ try:
         else:
             st.caption("XLSX error")
 
+    # ==================================================
+    # COPYRIGHT
+    # ==================================================
+
+    st.markdown(
+        """
+        <div style="
+            width:100%;
+            text-align:right;
+            font-size:11px;
+            font-weight:400;
+            color:rgba(255,255,255,0.40);
+            margin-top:2px;
+            margin-bottom:4px;
+            padding-right:6px;
+            line-height:1.2;
+            letter-spacing:0.1px;
+        ">
+            © 2026 tosounidis — All rights reserved
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 
 except Exception as e:
 
