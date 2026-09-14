@@ -4,18 +4,27 @@
   <meta charset="UTF-8">
 
   <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+        content="width=device-width,
+                 initial-scale=1.0,
+                 maximum-scale=1.0,
+                 user-scalable=no,
+                 viewport-fit=cover">
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Πωλήσεις 2026">
+  <meta name="apple-mobile-web-app-title" content="Πωλήσεις">
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#2c3e50">
 
-  <title>Πωλήσεις 2026</title>
+  <title>Πωλήσεις</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     html, body {
       margin: 0;
       padding: 0;
@@ -23,46 +32,66 @@
       height: 100%;
       background: #2c3e50;
       overflow: hidden;
+      overscroll-behavior: none;
     }
 
-    .app-wrap {
+    body {
       position: fixed;
       inset: 0;
-      background: #2c3e50;
+    }
+
+    .app-shell {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
+      background: #2c3e50;
     }
 
     .app-frame {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100dvh;
       border: 0;
+      margin: 0;
+      padding: 0;
       display: block;
+      background: #2c3e50;
     }
 
-    .streamlit-cover {
+    .bottom-mask {
       position: fixed;
       left: 0;
       right: 0;
       bottom: 0;
-      height: 64px;
+      height: calc(58px + env(safe-area-inset-bottom));
       background: #2c3e50;
-      z-index: 9999;
+      z-index: 999999;
       pointer-events: none;
+    }
+
+    @supports (-webkit-touch-callout: none) {
+      .app-frame {
+        height: -webkit-fill-available;
+      }
     }
   </style>
 </head>
 
 <body>
-
-  <div class="app-wrap">
+  <div class="app-shell">
     <iframe
       class="app-frame"
       src="https://upload-tv-spame-tosoun.streamlit.app/?embed=true"
-      scrolling="yes">
+      scrolling="yes"
+      allow="fullscreen"
+      referrerpolicy="no-referrer">
     </iframe>
   </div>
 
-  <div class="streamlit-cover"></div>
-
+  <div class="bottom-mask"></div>
 </body>
 </html>
