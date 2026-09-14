@@ -2525,6 +2525,21 @@ try:
 
         </div>
 
+        <div style="
+            width:100%;
+            text-align:left;
+            font-size:11px;
+            font-weight:400;
+            color:rgba(255,255,255,0.35);
+            margin:3px 0 0 0;
+            padding-left:4px;
+            line-height:1.2;
+            letter-spacing:0.1px;
+            box-sizing:border-box;
+        ">
+            © 2026 tosounidis — All rights reserved
+        </div>
+
 
         <div class="content-wrapper">
 
@@ -3302,31 +3317,6 @@ try:
 
         else:
             st.caption("XLSX error")
-
-    # ==================================================
-    # COPYRIGHT
-    # ==================================================
-
-    st.markdown(
-        """
-        <div style="
-            width:100%;
-            text-align:right;
-            font-size:11px;
-            font-weight:400;
-            color:rgba(255,255,255,0.40);
-            margin-top:2px;
-            margin-bottom:4px;
-            padding-right:6px;
-            line-height:1.2;
-            letter-spacing:0.1px;
-        ">
-            © 2026 tosounidis — All rights reserved
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
 
 except Exception as e:
 
