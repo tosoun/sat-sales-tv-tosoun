@@ -35,8 +35,6 @@ st.markdown(
 
     .block-container {
         padding: 0rem 0.5rem !important;
-        padding-top: 0rem !important;
-        margin-top: -18px !important;
         max-width: 100% !important;
     }
 
@@ -55,8 +53,6 @@ st.markdown(
 
         .block-container {
             padding: 0rem 0.30rem !important;
-            padding-top: 0rem !important;
-            margin-top: -22px !important;
             max-width: 100% !important;
             width: 100% !important;
         }
