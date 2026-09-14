@@ -6,15 +6,12 @@
   <meta name="viewport"
         content="width=device-width,
                  initial-scale=1.0,
-                 maximum-scale=1.0,
-                 user-scalable=no,
                  viewport-fit=cover">
 
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Πωλήσεις">
 
-  <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#2c3e50">
 
   <title>Πωλήσεις</title>
@@ -25,59 +22,26 @@
       padding: 0;
       width: 100%;
       height: 100%;
-      overflow: hidden;
       background: #2c3e50;
+      overflow: hidden;
     }
 
-    .app-shell {
+    iframe {
       position: fixed;
-      top: 0;
-      left: 0;
+      inset: 0;
       width: 100%;
-      overflow: hidden;
-      background: #2c3e50;
-    }
-
-    .app-frame {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
+      height: 100%;
       border: 0;
-      display: block;
-      background: #2c3e50;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="app-shell" id="shell">
-    <iframe
-      id="appFrame"
-      class="app-frame"
-      src="https://upload-tv-spame-tosoun.streamlit.app/?embed=true"
-      scrolling="yes">
-    </iframe>
-  </div>
-
-  <script>
-    function resizeApp() {
-      const h = window.innerHeight;
-
-      document.getElementById("shell").style.height = h + "px";
-
-      // λίγο μεγαλύτερο για να πετάξει τα Streamlit κουμπιά πιο κάτω
-      document.getElementById("appFrame").style.height = (h + 90) + "px";
-    }
-
-    resizeApp();
-
-    window.addEventListener("resize", resizeApp);
-    window.addEventListener("orientationchange", function () {
-      setTimeout(resizeApp, 300);
-    });
-  </script>
+  <iframe
+    src="https://upload-tv-spame-tosoun.streamlit.app/?embed=true"
+    allow="fullscreen">
+  </iframe>
 
 </body>
 </html>
