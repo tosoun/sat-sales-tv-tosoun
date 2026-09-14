@@ -3247,7 +3247,7 @@ try:
                 padding-top: 8px;
                 white-space: nowrap;
             ">
-                tosounidis 2026
+                ver001 20026
             </div>
             """,
             unsafe_allow_html=True,
