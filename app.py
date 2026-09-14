@@ -886,6 +886,48 @@ def clean_quantity_value(val):
         return 0.0
 
 
+def clean_value_value(val):
+
+    if pd.isna(val):
+        return 0.0
+
+    if isinstance(
+        val,
+        (int, float)
+    ):
+        return float(val)
+
+    s_val = (
+        str(val)
+        .strip()
+        .replace("€", "")
+        .replace("EUR", "")
+        .replace("eur", "")
+        .replace(" ", "")
+    )
+
+    if (
+        "," in s_val
+        and
+        "." in s_val
+    ):
+
+        s_val = (
+            s_val
+            .replace(".", "")
+            .replace(",", ".")
+        )
+
+    elif "," in s_val:
+
+        s_val = s_val.replace(",", ".")
+
+    try:
+        return float(s_val)
+    except Exception:
+        return 0.0
+
+
 def format_smart_num(num):
 
     if num == int(num):
@@ -920,6 +962,22 @@ def format_smart_num(num):
             f"{formatted_int},"
             f"{dec_part}"
         )
+
+
+def format_currency_eur(num):
+
+    try:
+        formatted = f"{float(num):,.2f}"
+        formatted = (
+            formatted
+            .replace(",", "X")
+            .replace(".", ",")
+            .replace("X", ".")
+        )
+        return f"{formatted} €"
+
+    except Exception:
+        return "0,00 €"
 
 
 # ==================================================
@@ -1157,6 +1215,43 @@ def process_sales_df(
                 quantity_col = col
                 break
 
+    # ==================================================
+    # ΒΡΙΣΚΕΙ ΤΗ ΣΤΗΛΗ ΑΞΙΑ
+    # ΟΠΟΥ ΚΑΙ ΑΝ ΒΡΙΣΚΕΤΑΙ
+    # ==================================================
+
+    value_col = None
+
+    # Πρώτα ψάχνουμε ακριβώς "ΑΞΙΑ"
+    for col in df.columns:
+
+        normalized_col = (
+            normalize_text(col)
+        )
+
+        if normalized_col == "αξια":
+
+            value_col = col
+            break
+
+    # Μετά παραλλαγές όπως "ΑΞΙΑ ΠΩΛΗΣΕΩΝ"
+    if value_col is None:
+
+        for col in df.columns:
+
+            normalized_col = (
+                normalize_text(col)
+            )
+
+            if (
+                "αξια" in normalized_col
+                and
+                "κοστος" not in normalized_col
+            ):
+
+                value_col = col
+                break
+
     if store_col is None:
 
         st.error(
@@ -1188,24 +1283,39 @@ def process_sales_df(
         )
 
     # ==================================================
-    # ΚΡΑΤΑΜΕ ΜΟΝΟ:
-    # ΚΑΤΑΣΤΗΜΑ + ΠΟΣΟΤΗΤΑ
+    # ΚΡΑΤΑΜΕ:
+    # ΚΑΤΑΣΤΗΜΑ + ΠΟΣΟΤΗΤΑ + ΑΞΙΑ
     # ==================================================
 
+    selected_columns = [
+        store_col,
+        quantity_col
+    ]
+
+    if value_col is not None:
+        selected_columns.append(value_col)
+
     df_selected = (
-        df[
-            [
-                store_col,
-                quantity_col
-            ]
-        ]
+        df[selected_columns]
         .copy()
     )
 
-    df_selected.columns = [
-        "Κατάστημα",
-        "Ποσότητα"
-    ]
+    if value_col is not None:
+
+        df_selected.columns = [
+            "Κατάστημα",
+            "Ποσότητα",
+            "Αξία"
+        ]
+
+    else:
+
+        df_selected.columns = [
+            "Κατάστημα",
+            "Ποσότητα"
+        ]
+
+        df_selected["Αξία"] = 0.0
 
     df_selected = (
         df_selected
@@ -1266,6 +1376,21 @@ def process_sales_df(
         ]
         .apply(
             clean_quantity_value
+        )
+    )
+
+    # ==================================================
+    # ΜΕΤΑΤΡΟΠΗ ΑΞΙΑΣ ΣΕ ΑΡΙΘΜΟ
+    # ==================================================
+
+    df_clean[
+        "Num_Value"
+    ] = (
+        df_clean[
+            "Αξία"
+        ]
+        .apply(
+            clean_value_value
         )
     )
 
@@ -1599,6 +1724,7 @@ def filter_dataframe(df_stores):
 
         return (
             df_stores,
+            0.0,
             0.0
         )
 
@@ -1663,21 +1789,33 @@ def filter_dataframe(df_stores):
         .sum()
     )
 
+    total_value = (
+        filtered_df[
+            "Num_Value"
+        ]
+        .sum()
+        if
+        "Num_Value" in filtered_df.columns
+        else
+        0.0
+    )
+
     return (
         filtered_df
         .reset_index(drop=True),
-        total_sum
+        total_sum,
+        total_value
     )
 
 
-df_stores_1, total_sum_1 = (
+df_stores_1, total_sum_1, total_value_1 = (
     filter_dataframe(
         df_stores_1
     )
 )
 
 
-df_stores_2, total_sum_2 = (
+df_stores_2, total_sum_2, total_value_2 = (
     filter_dataframe(
         df_stores_2
     )
@@ -2827,6 +2965,42 @@ try:
         """
 
 
+        formatted_value_1 = (
+            format_currency_eur(
+                total_value_1
+            )
+        )
+
+
+        html_content += f"""
+
+        <div
+            class="poll-item total-item"
+        >
+
+            <div
+                class="poll-info"
+            >
+
+                <span>
+                    <b>
+                        TOTAL ΑΞΙΑΣ
+                    </b>
+                </span>
+
+                <span>
+                    <b>
+                        {formatted_value_1}
+                    </b>
+                </span>
+
+            </div>
+
+        </div>
+
+        """
+
+
     else:
 
 
@@ -3033,6 +3207,42 @@ try:
                     style="width: 100%;"
                 >
                 </div>
+
+            </div>
+
+        </div>
+
+        """
+
+
+        formatted_value_2 = (
+            format_currency_eur(
+                total_value_2
+            )
+        )
+
+
+        html_content += f"""
+
+        <div
+            class="poll-item total-item"
+        >
+
+            <div
+                class="poll-info"
+            >
+
+                <span>
+                    <b>
+                        TOTAL ΑΞΙΑΣ
+                    </b>
+                </span>
+
+                <span>
+                    <b>
+                        {formatted_value_2}
+                    </b>
+                </span>
 
             </div>
 
