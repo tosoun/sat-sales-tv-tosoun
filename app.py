@@ -2537,7 +2537,7 @@ try:
             letter-spacing:0.1px;
             box-sizing:border-box;
         ">
-            © 2026 tosounidis — All rights reserved
+            © 2026 tosounidis 
         </div>
 
 
