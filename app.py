@@ -125,15 +125,53 @@ st.markdown(
     function removeManageButton() {
 
         const doc = window.parent.document;
-        const buttons = doc.querySelectorAll('button');
 
-        buttons.forEach(btn => {
+        // Κρύβει το στρογγυλό κουμπί "Manage app" του Streamlit Cloud,
+        // ακόμη κι όταν εμφανίζεται μόνο ως εικονίδιο χωρίς κείμενο.
+        const candidates = doc.querySelectorAll(
+            'button, a, [role="button"], [data-testid]'
+        );
+
+        candidates.forEach(el => {
+
+            const text = (
+                (el.innerText || '') + ' ' +
+                (el.textContent || '') + ' ' +
+                (el.getAttribute('aria-label') || '') + ' ' +
+                (el.getAttribute('title') || '') + ' ' +
+                (el.getAttribute('data-testid') || '') + ' ' +
+                (el.getAttribute('href') || '')
+            ).toLowerCase();
 
             if (
-                btn.innerText.includes('Manage app') ||
-                btn.innerHTML.includes('Manage')
+                text.includes('manage app') ||
+                text.includes('manageapp') ||
+                text.includes('app management')
             ) {
-                btn.style.display = 'none';
+                el.style.setProperty('display', 'none', 'important');
+                el.style.setProperty('visibility', 'hidden', 'important');
+                el.style.setProperty('pointer-events', 'none', 'important');
+
+                // Σε ορισμένες εκδόσεις του Streamlit το ορατό πλαίσιο
+                // είναι ο γονέας του ίδιου του button/link.
+                const wrapper = el.closest(
+                    '[data-testid], div[style*="position: fixed"], div[style*="position:fixed"]'
+                );
+
+                if (wrapper && wrapper !== doc.body) {
+                    const wrapperText = (
+                        (wrapper.innerText || '') + ' ' +
+                        (wrapper.getAttribute('aria-label') || '') + ' ' +
+                        (wrapper.getAttribute('data-testid') || '')
+                    ).toLowerCase();
+
+                    if (
+                        wrapperText.includes('manage app') ||
+                        wrapperText.includes('manageapp')
+                    ) {
+                        wrapper.style.setProperty('display', 'none', 'important');
+                    }
+                }
             }
 
         });
@@ -158,7 +196,19 @@ st.markdown(
         });
     }
 
-    setInterval(removeManageButton, 300);
+    // Το Streamlit μπορεί να ξαναδημιουργήσει το κουμπί μετά από rerun,
+    // γι' αυτό το αφαιρούμε στην αρχή και παρακολουθούμε αλλαγές στο DOM.
+    removeManageButton();
+
+    const parentDoc = window.parent.document;
+    const observer = new MutationObserver(removeManageButton);
+
+    observer.observe(
+        parentDoc.documentElement,
+        { childList: true, subtree: true, attributes: true }
+    );
+
+    setInterval(removeManageButton, 500);
     </script>
     """,
     unsafe_allow_html=True,
