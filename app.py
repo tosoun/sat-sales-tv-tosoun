@@ -3247,7 +3247,7 @@ try:
                 padding-top: 8px;
                 white-space: nowrap;
             ">
-                ver001 20026
+                ver:004 
             </div>
             """,
             unsafe_allow_html=True,
