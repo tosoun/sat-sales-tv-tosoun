@@ -2,7 +2,9 @@
 <html lang="el">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
   <title>Πωλήσεις 2026</title>
 
   <style>
@@ -11,36 +13,49 @@
       padding: 0;
       width: 100%;
       height: 100%;
-      overflow: hidden;
       background: #2c3e50;
+      overflow: hidden;
     }
 
-    .frame-wrap {
+    .app-wrap {
       position: fixed;
       inset: 0;
-      overflow: hidden;
       background: #2c3e50;
+      overflow: hidden;
     }
 
-    iframe {
-      position: absolute;
-      top: 0;
-      left: 0;
+    .app-frame {
       width: 100%;
-      height: calc(100% + 70px);
+      height: 100dvh;
       border: 0;
+      display: block;
+    }
+
+    /* Καλύπτει μόνο την κάτω μπάρα του Streamlit */
+    .streamlit-cover {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 64px;
+      background: #2c3e50;
+      z-index: 9999;
+      pointer-events: none;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="frame-wrap">
+  <div class="app-wrap">
     <iframe
+      class="app-frame"
       src="https://upload-tv-spame-tosoun.streamlit.app/?embed=true"
-      allow="fullscreen">
+      scrolling="yes">
     </iframe>
   </div>
+
+  <div class="streamlit-cover"></div>
 
 </body>
 </html>
