@@ -1765,6 +1765,17 @@ def filter_dataframe(df_stores):
                 ]
             )
 
+            # Ειδική εξαίρεση: το κατάστημα 366 δεν ανήκει στον ΠΑΤΣΗ.
+            # Χωρίς αυτή την εξαίρεση περνάει κατά λάθος επειδή
+            # στην περιγραφή του υπάρχει το "ΟΤ 226".
+            if active_filter == "πατσης":
+                filtered_df = filtered_df[
+                    ~filtered_df["Κατάστημα"]
+                    .astype(str)
+                    .str.strip()
+                    .str.match(r"^366(?:\D|$)", na=False)
+                ]
+
         else:
 
             filtered_df = (
