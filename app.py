@@ -2043,39 +2043,45 @@ except Exception:
 
 
 # ==================================================
-# BANNER - ΝΕΟ / 5 ΣΕΠΤΕΜΒΡΙΟΥ
+# BANNER - ΝΕΟ / 21 ΣΕΠΤΕΜΒΡΙΟΥ
 # ==================================================
 
 img_src = ""
 
-# Ψάχνει εικόνες/GIF που μπορούν να χρησιμοποιηθούν ως banner.
-# Αν υπάρχουν περισσότερα από ένα, επιλέγει αυτό που τροποποιήθηκε πιο πρόσφατα.
-banner_files = (
-    glob.glob("ChatGPT Image*.png")
-    + glob.glob("ChatGPT Image*.jpg")
-    + glob.glob("ChatGPT Image*.jpeg")
-    + glob.glob("ChatGPT Image*.gif")
-    + glob.glob("*banner*.jpg")
-    + glob.glob("*banner*.jpeg")
-    + glob.glob("*banner*.png")
-    + glob.glob("*banner*.gif")
-    + glob.glob("*ΣΦΥΡΙ*.gif")
-    + glob.glob("*σφυρι*.gif")
-    + glob.glob("*sfyri*.gif")
-    + glob.glob("*hammer*.gif")
-)
+# Το νέο banner έχει προτεραιότητα.
+preferred_banner = "banner_new.png"
 
-# Αφαιρούμε τυχόν διπλοεγγραφές
-banner_files = list(dict.fromkeys(banner_files))
-
-if banner_files:
-
-    # Πάντα το νεότερο αρχείο
-    banner_filename = max(
-        banner_files,
-        key=os.path.getmtime
+if os.path.exists(preferred_banner):
+    banner_filename = preferred_banner
+else:
+    # Fallback: αν λείπει το νέο banner, ψάχνει τα παλιότερα αρχεία.
+    banner_files = (
+        glob.glob("ChatGPT Image*.png")
+        + glob.glob("ChatGPT Image*.jpg")
+        + glob.glob("ChatGPT Image*.jpeg")
+        + glob.glob("ChatGPT Image*.gif")
+        + glob.glob("Image*.png")
+        + glob.glob("Image*.jpg")
+        + glob.glob("Image*.jpeg")
+        + glob.glob("Image*.gif")
+        + glob.glob("*banner*.jpg")
+        + glob.glob("*banner*.jpeg")
+        + glob.glob("*banner*.png")
+        + glob.glob("*banner*.gif")
+        + glob.glob("*ΣΦΥΡΙ*.gif")
+        + glob.glob("*σφυρι*.gif")
+        + glob.glob("*sfyri*.gif")
+        + glob.glob("*hammer*.gif")
     )
 
+    banner_files = list(dict.fromkeys(banner_files))
+    banner_filename = (
+        max(banner_files, key=os.path.getmtime)
+        if banner_files
+        else None
+    )
+
+if banner_filename:
     extension = os.path.splitext(
         banner_filename
     )[1].lower()
@@ -2096,7 +2102,6 @@ if banner_files:
         banner_filename,
         "rb"
     ) as image_file:
-
         img_src = (
             f"data:{mime_type};base64,"
             f"{base64.b64encode(image_file.read()).decode()}"
