@@ -1756,65 +1756,70 @@ except Exception as excel_error:
 
 
 # ==================================================
-# BANNER - ΝΕΟ / 5 ΣΕΠΤΕΜΒΡΙΟΥ
+# BANNER - ΑΝΑΖΗΤΗΣΗ ΣΤΟΝ ΦΑΚΕΛΟ ΤΗΣ ΕΦΑΡΜΟΓΗΣ
 # ==================================================
 
 img_src = ""
 
-# Ψάχνει εικόνες/GIF που μπορούν να χρησιμοποιηθούν ως banner.
-# Αν υπάρχουν περισσότερα από ένα, επιλέγει αυτό που τροποποιήθηκε πιο πρόσφατα.
-banner_files = (
-    glob.glob("ChatGPT Image*.png")
-    + glob.glob("ChatGPT Image*.jpg")
-    + glob.glob("ChatGPT Image*.jpeg")
-    + glob.glob("ChatGPT Image*.gif")
-    + glob.glob("*banner*.jpg")
-    + glob.glob("*banner*.jpeg")
-    + glob.glob("*banner*.png")
-    + glob.glob("*banner*.gif")
-    + glob.glob("*ΣΦΥΡΙ*.gif")
-    + glob.glob("*σφυρι*.gif")
-    + glob.glob("*sfyri*.gif")
-    + glob.glob("*hammer*.gif")
-)
+# Το Streamlit Cloud δεν εκτελεί πάντα την εφαρμογή από τον ίδιο
+# working directory. Γι' αυτό ψάχνουμε πρώτα δίπλα στο app.py
+# και έπειτα στους συνηθισμένους φακέλους εικόνων.
+app_dir = os.path.dirname(os.path.abspath(__file__))
+search_dirs = [
+    app_dir,
+    os.getcwd(),
+    os.path.join(app_dir, "assets"),
+    os.path.join(app_dir, "static"),
+    os.path.join(app_dir, "images"),
+]
 
-# Αφαιρούμε τυχόν διπλοεγγραφές
-banner_files = list(dict.fromkeys(banner_files))
+valid_extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+banner_files = []
+seen_paths = set()
+
+for folder in search_dirs:
+    if not os.path.isdir(folder):
+        continue
+    try:
+        for filename in os.listdir(folder):
+            lower_name = filename.casefold()
+            extension = os.path.splitext(filename)[1].lower()
+            looks_like_banner = (
+                "banner" in lower_name
+                or "image 21 σεπ 2026, 11_24_53 π.μ." in lower_name
+                or "chatgpt image" in lower_name
+                or "σφυρι" in lower_name
+                or "σφυρί" in lower_name
+                or "sfyri" in lower_name
+                or "hammer" in lower_name
+            )
+            if extension in valid_extensions and looks_like_banner:
+                full_path = os.path.abspath(os.path.join(folder, filename))
+                if full_path not in seen_paths:
+                    seen_paths.add(full_path)
+                    banner_files.append(full_path)
+    except OSError:
+        continue
 
 if banner_files:
-
-    # Πάντα το νεότερο αρχείο
-    banner_filename = max(
-        banner_files,
-        key=os.path.getmtime
-    )
-
-    extension = os.path.splitext(
-        banner_filename
-    )[1].lower()
-
+    # Επιλέγουμε το πιο πρόσφατο αρχείο banner.
+    banner_filename = max(banner_files, key=os.path.getmtime)
+    extension = os.path.splitext(banner_filename)[1].lower()
     mime_types = {
         ".png": "image/png",
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
         ".gif": "image/gif",
+        ".webp": "image/webp",
     }
+    mime_type = mime_types.get(extension, "image/png")
 
-    mime_type = mime_types.get(
-        extension,
-        "image/png"
-    )
-
-    with open(
-        banner_filename,
-        "rb"
-    ) as image_file:
-
-        img_src = (
-            f"data:{mime_type};base64,"
-            f"{base64.b64encode(image_file.read()).decode()}"
-        )
-
+    try:
+        with open(banner_filename, "rb") as image_file:
+            encoded_image = base64.b64encode(image_file.read()).decode("ascii")
+        img_src = f"data:{mime_type};base64,{encoded_image}"
+    except OSError:
+        img_src = ""
 
 # ==================================================
 # HTML
@@ -2340,17 +2345,7 @@ try:
     <div class="main-container">
 
 
-        <div class="banner-container">
-
-
-            <img
-                src="{img_src}"
-                class="banner-img"
-                alt="banner"
-            >
-
-
-        </div>
+        {f'<div class="banner-container"><img src="{img_src}" class="banner-img" alt="banner"></div>' if img_src else ""}
 
 
         <div class="content-wrapper">
