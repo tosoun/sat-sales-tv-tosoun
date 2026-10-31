@@ -3,6 +3,7 @@ import datetime
 import glob
 import json
 import os
+import re
 import unicodedata
 from io import BytesIO
 
@@ -41,84 +42,6 @@ st.markdown(
     div[data-testid="stHorizontalBlock"] {
         align-items: center !important;
     }
-
-    /* ==================================================
-       MOBILE COMPACT v3
-       Admin + Περιφέρεια μένουν στην ΙΔΙΑ γραμμή.
-       Τα δύο πλαίσια μικραίνουν.
-       Το XLSX μπαίνει ακριβώς δίπλα στην Περιφέρεια.
-       ================================================== */
-
-    @media (max-width: 900px) {
-
-        .block-container {
-            padding: 0rem 0.30rem !important;
-            max-width: 100% !important;
-            width: 100% !important;
-        }
-
-        /* ΚΥΡΙΑ ΣΕΙΡΑ: Admin αριστερά / Περιφέρεια δεξιά */
-        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stExpander"]) {
-            flex-direction: row !important;
-            align-items: flex-start !important;
-            gap: 0.35rem !important;
-            width: 100% !important;
-        }
-
-        /* Admin = πιο μικρό */
-        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stExpander"])
-        > div[data-testid="column"]:first-child {
-            flex: 0 0 42% !important;
-            width: 42% !important;
-            min-width: 0 !important;
-            max-width: 42% !important;
-        }
-
-        /* Περιφέρεια = λίγο μεγαλύτερο */
-        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stExpander"])
-        > div[data-testid="column"]:nth-child(2) {
-            flex: 0 0 58% !important;
-            width: 58% !important;
-            min-width: 0 !important;
-            max-width: 58% !important;
-        }
-
-        /* Μικρότερο Admin expander */
-        div[data-testid="stExpander"] {
-            width: 100% !important;
-        }
-
-        div[data-testid="stExpander"] details summary {
-            padding-left: 0.45rem !important;
-            padding-right: 0.45rem !important;
-            min-height: 42px !important;
-        }
-
-        div[data-testid="stExpander"] details summary p {
-            font-size: 12px !important;
-            white-space: nowrap !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-        }
-
-        /* Εσωτερική σειρά: Περιφέρεια + Excel δίπλα-δίπλα */
-        div[data-testid="stHorizontalBlock"]
-        div[data-testid="stHorizontalBlock"] {
-            flex-direction: row !important;
-            align-items: flex-end !important;
-            gap: 0.25rem !important;
-            width: 100% !important;
-        }
-
-        /* Select Περιφέρειας */
-        div[data-testid="stHorizontalBlock"]
-        div[data-testid="stHorizontalBlock"]
-        > div[data-testid="column"]:first-child {
-            flex: 1 1 auto !important;
-            width: auto !important;
-            min-width: 0 !important;
-        }
-    }
     </style>
 
     <script>
@@ -138,24 +61,6 @@ st.markdown(
 
         });
 
-        const pwdInputs =
-            doc.querySelectorAll('input[type="password"]');
-
-        pwdInputs.forEach(input => {
-
-            input.setAttribute(
-                'autocomplete',
-                'username'
-            );
-
-            input.setAttribute(
-                'data-form-type',
-                'other'
-            );
-
-            input.removeAttribute('name');
-
-        });
     }
 
     setInterval(removeManageButton, 300);
@@ -336,7 +241,7 @@ st.markdown(
 )
 
 
-col_admin, col_input_space = st.columns([3, 5], gap="small")
+col_admin, col_input_space = st.columns([4, 4])
 
 
 # ==================================================
@@ -354,43 +259,6 @@ with col_admin:
             key="admin_pass",
             placeholder="Κωδικός",
             type="default",
-        )
-
-        components.html(
-            """
-            <script>
-
-            const doc = window.parent.document;
-            const inputs = doc.querySelectorAll('input');
-
-            inputs.forEach(input => {
-
-                if (
-                    input.getAttribute('aria-label') &&
-                    input
-                    .getAttribute('aria-label')
-                    .includes('κωδικό')
-                ) {
-
-                    input.setAttribute(
-                        'autocomplete',
-                        'off'
-                    );
-
-                    input.setAttribute(
-                        'data-form-type',
-                        'other'
-                    );
-
-                    input.removeAttribute('name');
-
-                }
-
-            });
-
-            </script>
-            """,
-            height=0,
         )
 
         if password == "2845":
@@ -758,12 +626,25 @@ with col_input_space:
         "πουτογλιδης",
     ]
 
-    selected_region = st.selectbox(
-        "📍 ΠΕΡΙΦΕΡΕΙΑ",
-        options=region_options,
-        index=0,
-        format_func=lambda x: x.upper(),
-    )
+    col_region_select, col_excel_button = st.columns([8, 1])
+
+    with col_region_select:
+
+        selected_region = st.selectbox(
+            "📍 ΠΕΡΙΦΕΡΕΙΑ",
+            options=region_options,
+            index=0,
+            format_func=lambda x: x.upper(),
+        )
+
+    with col_excel_button:
+
+        st.markdown(
+            "<div style='height: 27px;'></div>",
+            unsafe_allow_html=True,
+        )
+
+        excel_button_slot = st.empty()
 
     active_filter = (
         selected_region.lower()
@@ -886,48 +767,6 @@ def clean_quantity_value(val):
         return 0.0
 
 
-def clean_value_value(val):
-
-    if pd.isna(val):
-        return 0.0
-
-    if isinstance(
-        val,
-        (int, float)
-    ):
-        return float(val)
-
-    s_val = (
-        str(val)
-        .strip()
-        .replace("€", "")
-        .replace("EUR", "")
-        .replace("eur", "")
-        .replace(" ", "")
-    )
-
-    if (
-        "," in s_val
-        and
-        "." in s_val
-    ):
-
-        s_val = (
-            s_val
-            .replace(".", "")
-            .replace(",", ".")
-        )
-
-    elif "," in s_val:
-
-        s_val = s_val.replace(",", ".")
-
-    try:
-        return float(s_val)
-    except Exception:
-        return 0.0
-
-
 def format_smart_num(num):
 
     if num == int(num):
@@ -962,22 +801,6 @@ def format_smart_num(num):
             f"{formatted_int},"
             f"{dec_part}"
         )
-
-
-def format_currency_eur(num):
-
-    try:
-        formatted = f"{float(num):,.2f}"
-        formatted = (
-            formatted
-            .replace(",", "X")
-            .replace(".", ",")
-            .replace("X", ".")
-        )
-        return f"{formatted} €"
-
-    except Exception:
-        return "0,00 €"
 
 
 # ==================================================
@@ -1215,41 +1038,6 @@ def process_sales_df(
                 quantity_col = col
                 break
 
-    # ==================================================
-    # ΒΡΙΣΚΕΙ ΤΗ ΣΤΗΛΗ ΠΛΗΡΩΤΕΟ ΑΝΕΥ ΦΠΑ
-    # ΟΠΟΥ ΚΑΙ ΑΝ ΒΡΙΣΚΕΤΑΙ
-    # ==================================================
-
-    value_col = None
-
-    # Πρώτα ψάχνουμε την ακριβή επικεφαλίδα
-    # "ΠΛΗΡΩΤΕΟ ΑΝΕΥ ΦΠΑ".
-    for col in df.columns:
-
-        normalized_col = (
-            normalize_text(col)
-        )
-
-        if normalized_col == "πληρωτεο ανευ φπα":
-
-            value_col = col
-            break
-
-    # Αν η διατύπωση αλλάξει λίγο, κρατάμε ως ασφαλή
-    # εναλλακτική οποιαδήποτε στήλη περιέχει "ΠΛΗΡΩΤ".
-    if value_col is None:
-
-        for col in df.columns:
-
-            normalized_col = (
-                normalize_text(col)
-            )
-
-            if "πληρωτ" in normalized_col:
-
-                value_col = col
-                break
-
     if store_col is None:
 
         st.error(
@@ -1281,39 +1069,24 @@ def process_sales_df(
         )
 
     # ==================================================
-    # ΚΡΑΤΑΜΕ:
-    # ΚΑΤΑΣΤΗΜΑ + ΠΟΣΟΤΗΤΑ + ΠΛΗΡΩΤΕΟ
+    # ΚΡΑΤΑΜΕ ΜΟΝΟ:
+    # ΚΑΤΑΣΤΗΜΑ + ΠΟΣΟΤΗΤΑ
     # ==================================================
 
-    selected_columns = [
-        store_col,
-        quantity_col
-    ]
-
-    if value_col is not None:
-        selected_columns.append(value_col)
-
     df_selected = (
-        df[selected_columns]
+        df[
+            [
+                store_col,
+                quantity_col
+            ]
+        ]
         .copy()
     )
 
-    if value_col is not None:
-
-        df_selected.columns = [
-            "Κατάστημα",
-            "Ποσότητα",
-            "Αξία"
-        ]
-
-    else:
-
-        df_selected.columns = [
-            "Κατάστημα",
-            "Ποσότητα"
-        ]
-
-        df_selected["Αξία"] = 0.0
+    df_selected.columns = [
+        "Κατάστημα",
+        "Ποσότητα"
+    ]
 
     df_selected = (
         df_selected
@@ -1374,21 +1147,6 @@ def process_sales_df(
         ]
         .apply(
             clean_quantity_value
-        )
-    )
-
-    # ==================================================
-    # ΜΕΤΑΤΡΟΠΗ ΠΛΗΡΩΤΕΟΥ ΣΕ ΑΡΙΘΜΟ
-    # ==================================================
-
-    df_clean[
-        "Num_Value"
-    ] = (
-        df_clean[
-            "Αξία"
-        ]
-        .apply(
-            clean_value_value
         )
     )
 
@@ -1483,9 +1241,8 @@ PONOPOULOS_KEYWORDS = [
 CHARALAMPIDIS_KEYWORDS = [
     "211", "201", "347", "212",
     "239", "219", "220", "222",
-    "223", "240", "241", "493", "345",
+    "223", "240", "241", "493",
     "δ.γεωργιαδου",
-    "ρουσβελτ",
     "λαρισα",
     "νικηταρα",
     "ιωαννινων",
@@ -1716,115 +1473,112 @@ title_2, df_stores_2, _, max_sales_2 = (
 )
 
 
+def _build_store_code_owners():
+    """Χαρτογραφεί κάθε κωδικό καταστήματος σε μία και μόνο ομάδα."""
+    owners = {}
+    ambiguous = set()
+
+    for group_name, keywords in GROUPS_MAPPING.items():
+        if group_name in ("τομεας 3", "τομέας 3"):
+            continue
+        for keyword in keywords:
+            value = str(keyword).strip()
+            if re.fullmatch(r"\d{3,4}", value):
+                if value in owners and owners[value] != group_name:
+                    ambiguous.add(value)
+                else:
+                    owners[value] = group_name
+
+    for code in ambiguous:
+        owners.pop(code, None)
+    return owners
+
+
+STORE_CODE_OWNERS = _build_store_code_owners()
+
+
+def _build_text_keyword_owners():
+    """Κρατά μόνο φράσεις που ανήκουν αποκλειστικά σε μία ομάδα."""
+    owners = {}
+    ambiguous = set()
+
+    for group_name, keywords in GROUPS_MAPPING.items():
+        if group_name in ("τομεας 3", "τομέας 3"):
+            continue
+        for keyword in keywords:
+            value = str(keyword).strip()
+            if not value or re.fullmatch(r"\d{3,4}", value):
+                continue
+            normalized = normalize_text(value)
+            if normalized in owners and owners[normalized] != group_name:
+                ambiguous.add(normalized)
+            else:
+                owners[normalized] = group_name
+
+    for phrase in ambiguous:
+        owners.pop(phrase, None)
+    return owners
+
+
+TEXT_KEYWORD_OWNERS = _build_text_keyword_owners()
+
+
+def _store_belongs_to_group(store_name, group_name):
+    """Αντιστοίχιση πρώτα με ακριβή κωδικό, ποτέ με αριθμούς διεύθυνσης."""
+    normalized_name = normalize_text(store_name)
+    code_match = re.match(r"^\s*(\d{3,4})(?=\D|$)", normalized_name)
+
+    if code_match:
+        # Όταν υπάρχει κωδικός στην αρχή, αυτός είναι η μοναδική πηγή αλήθειας.
+        return STORE_CODE_OWNERS.get(code_match.group(1)) == group_name
+
+    # Εφεδρική αντιστοίχιση μόνο με μοναδικές, ολόκληρες φράσεις διεύθυνσης.
+    for phrase, owner in TEXT_KEYWORD_OWNERS.items():
+        if owner != group_name:
+            continue
+        pattern = r"(?<!\w)" + re.escape(phrase) + r"(?!\w)"
+        if re.search(pattern, normalized_name):
+            return True
+
+    return False
+
+
 def filter_dataframe(df_stores):
 
     if df_stores.empty:
+        return df_stores.copy(), 0.0
 
-        return (
-            df_stores,
-            0.0,
-            0.0
-        )
+    filtered_df = df_stores.copy()
 
-    filtered_df = (
-        df_stores.copy()
-    )
-
-    if active_filter:
-
+    if active_filter and active_filter not in ("τομεας 3", "τομέας 3"):
         if active_filter in GROUPS_MAPPING:
-
-            keywords = (
-                GROUPS_MAPPING[
-                    active_filter
-                ]
-            )
-
-            pattern = "|".join(
-                [
-                    r"\b"
-                    + kw
-                    + r"\b"
-                    for kw
-                    in keywords
-                ]
-            )
-
-            filtered_df = (
-                filtered_df[
-                    filtered_df[
-                        "Κατάστημα"
-                    ]
-                    .str.lower()
-                    .str.contains(
-                        pattern,
-                        case=False,
-                        na=False,
-                        regex=True
+            filtered_df = filtered_df[
+                filtered_df["Κατάστημα"].apply(
+                    lambda store: _store_belongs_to_group(
+                        store, active_filter
                     )
-                ]
-            )
-
-            # Ειδική εξαίρεση: το κατάστημα 366 δεν ανήκει στον ΠΑΤΣΗ.
-            # Χωρίς αυτή την εξαίρεση περνάει κατά λάθος επειδή
-            # στην περιγραφή του υπάρχει το "ΟΤ 226".
-            if active_filter == "πατσης":
-                filtered_df = filtered_df[
-                    ~filtered_df["Κατάστημα"]
-                    .astype(str)
-                    .str.strip()
-                    .str.match(r"^366(?:\D|$)", na=False)
-                ]
-
+                )
+            ]
         else:
+            filtered_df = filtered_df[
+                filtered_df["Κατάστημα"].astype(str).str.contains(
+                    re.escape(active_filter), case=False, na=False, regex=True
+                )
+            ]
 
-            filtered_df = (
-                filtered_df[
-                    filtered_df[
-                        "Κατάστημα"
-                    ]
-                    .str.lower()
-                    .str.contains(
-                        active_filter,
-                        na=False
-                    )
-                ]
-            )
+    total_sum = filtered_df["Num_Sales"].sum()
 
-    total_sum = (
-        filtered_df[
-            "Num_Sales"
-        ]
-        .sum()
-    )
-
-    total_value = (
-        filtered_df[
-            "Num_Value"
-        ]
-        .sum()
-        if
-        "Num_Value" in filtered_df.columns
-        else
-        0.0
-    )
-
-    return (
-        filtered_df
-        .reset_index(drop=True),
-        total_sum,
-        total_value
-    )
+    return filtered_df.reset_index(drop=True), total_sum
 
 
-df_stores_1, total_sum_1, total_value_1 = (
+df_stores_1, total_sum_1 = (
     filter_dataframe(
         df_stores_1
     )
 )
 
 
-df_stores_2, total_sum_2, total_value_2 = (
+df_stores_2, total_sum_2 = (
     filter_dataframe(
         df_stores_2
     )
@@ -1882,55 +1636,6 @@ def prepare_export_df(df_stores, total_sum):
     )
 
 
-def safe_excel_sheet_name(name, fallback):
-
-    invalid_chars = ['\\', '/', '*', '?', ':', '[', ']']
-
-    safe_name = str(name).strip()
-
-    for char in invalid_chars:
-        safe_name = safe_name.replace(char, " ")
-
-    safe_name = " ".join(safe_name.split())
-
-    if not safe_name:
-        safe_name = fallback
-
-    return safe_name[:31]
-
-
-def add_report_info_after_total(export_df):
-
-    info_rows = pd.DataFrame(
-        [
-            {
-                "Κατάστημα": "",
-                "Ποσότητα": ""
-            },
-            {
-                "Κατάστημα": "ΠΕΡΙΦΕΡΕΙΑ",
-                "Ποσότητα": selected_region.upper()
-            },
-            {
-                "Κατάστημα": "ΗΜΕΡΟΜΗΝΙΑ",
-                "Ποσότητα": file_date_str
-            },
-            {
-                "Κατάστημα": "ΩΡΑ",
-                "Ποσότητα": file_time_str
-            },
-        ]
-    )
-
-    return pd.concat(
-        [
-            export_df,
-            info_rows
-        ],
-        ignore_index=True
-    )
-
-
 def build_excel_file():
 
     output = BytesIO()
@@ -1945,48 +1650,47 @@ def build_excel_file():
         total_sum_2
     )
 
-    # Μετά το TOTAL:
-    # ΠΕΡΙΦΕΡΕΙΑ - ΗΜΕΡΟΜΗΝΙΑ - ΩΡΑ
-    export_1 = add_report_info_after_total(export_1)
-    export_2 = add_report_info_after_total(export_2)
-
-    # Τα φύλλα παίρνουν τα πραγματικά ονόματα των δύο ειδών.
-    sheet_1 = safe_excel_sheet_name(
-        title_1,
-        "Είδος 1"
+    summary_df = pd.DataFrame(
+        [
+            ["Περιφέρεια", selected_region.upper()],
+            ["Ημερομηνία", file_date_str],
+            ["Ώρα", file_time_str],
+            ["Προϊόν 1", title_1],
+            ["Προϊόν 2", title_2],
+        ],
+        columns=[
+            "Πεδίο",
+            "Τιμή"
+        ]
     )
-
-    sheet_2 = safe_excel_sheet_name(
-        title_2,
-        "Είδος 2"
-    )
-
-    if sheet_2 == sheet_1:
-        base = sheet_2[:27]
-        sheet_2 = f"{base} (2)"
 
     with pd.ExcelWriter(
         output,
         engine="openpyxl"
     ) as writer:
 
-        # ΜΟΝΟ δύο φύλλα:
-        # [Όνομα 1ου είδους] | [Όνομα 2ου είδους]
+        summary_df.to_excel(
+            writer,
+            sheet_name="Σύνοψη",
+            index=False
+        )
+
         export_1.to_excel(
             writer,
-            sheet_name=sheet_1,
+            sheet_name="Προϊόν 1",
             index=False
         )
 
         export_2.to_excel(
             writer,
-            sheet_name=sheet_2,
+            sheet_name="Προϊόν 2",
             index=False
         )
 
         for sheet_name in [
-            sheet_1,
-            sheet_2
+            "Σύνοψη",
+            "Προϊόν 1",
+            "Προϊόν 2"
         ]:
 
             ws = writer.book[sheet_name]
@@ -2021,9 +1725,6 @@ def build_excel_file():
     return output.getvalue()
 
 
-excel_data = None
-excel_download_filename = "sales.xlsx"
-
 try:
 
     excel_data = build_excel_file()
@@ -2033,55 +1734,61 @@ try:
         .replace(" ", "_")
     )
 
-    excel_download_filename = (
-        f"sales_{safe_region_name}_"
-        f"{datetime.date.today().strftime('%Y%m%d')}.xlsx"
+    excel_button_slot.download_button(
+        label="⬇ XLSX",
+        data=excel_data,
+        file_name=(
+            f"sales_{safe_region_name}_"
+            f"{datetime.date.today().strftime('%Y%m%d')}.xlsx"
+        ),
+        mime=(
+            "application/vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        ),
+        key="download_current_sales_xlsx",
     )
 
-except Exception:
-    excel_data = None
+except Exception as excel_error:
+
+    excel_button_slot.caption(
+        "XLSX error"
+    )
 
 
 # ==================================================
-# BANNER - ΝΕΟ / 21 ΣΕΠΤΕΜΒΡΙΟΥ
+# BANNER - ΝΕΟ / 5 ΣΕΠΤΕΜΒΡΙΟΥ
 # ==================================================
 
 img_src = ""
 
-# Το νέο banner έχει προτεραιότητα.
-preferred_banner = "banner_new.png"
+# Ψάχνει εικόνες/GIF που μπορούν να χρησιμοποιηθούν ως banner.
+# Αν υπάρχουν περισσότερα από ένα, επιλέγει αυτό που τροποποιήθηκε πιο πρόσφατα.
+banner_files = (
+    glob.glob("ChatGPT Image*.png")
+    + glob.glob("ChatGPT Image*.jpg")
+    + glob.glob("ChatGPT Image*.jpeg")
+    + glob.glob("ChatGPT Image*.gif")
+    + glob.glob("*banner*.jpg")
+    + glob.glob("*banner*.jpeg")
+    + glob.glob("*banner*.png")
+    + glob.glob("*banner*.gif")
+    + glob.glob("*ΣΦΥΡΙ*.gif")
+    + glob.glob("*σφυρι*.gif")
+    + glob.glob("*sfyri*.gif")
+    + glob.glob("*hammer*.gif")
+)
 
-if os.path.exists(preferred_banner):
-    banner_filename = preferred_banner
-else:
-    # Fallback: αν λείπει το νέο banner, ψάχνει τα παλιότερα αρχεία.
-    banner_files = (
-        glob.glob("ChatGPT Image*.png")
-        + glob.glob("ChatGPT Image*.jpg")
-        + glob.glob("ChatGPT Image*.jpeg")
-        + glob.glob("ChatGPT Image*.gif")
-        + glob.glob("Image*.png")
-        + glob.glob("Image*.jpg")
-        + glob.glob("Image*.jpeg")
-        + glob.glob("Image*.gif")
-        + glob.glob("*banner*.jpg")
-        + glob.glob("*banner*.jpeg")
-        + glob.glob("*banner*.png")
-        + glob.glob("*banner*.gif")
-        + glob.glob("*ΣΦΥΡΙ*.gif")
-        + glob.glob("*σφυρι*.gif")
-        + glob.glob("*sfyri*.gif")
-        + glob.glob("*hammer*.gif")
+# Αφαιρούμε τυχόν διπλοεγγραφές
+banner_files = list(dict.fromkeys(banner_files))
+
+if banner_files:
+
+    # Πάντα το νεότερο αρχείο
+    banner_filename = max(
+        banner_files,
+        key=os.path.getmtime
     )
 
-    banner_files = list(dict.fromkeys(banner_files))
-    banner_filename = (
-        max(banner_files, key=os.path.getmtime)
-        if banner_files
-        else None
-    )
-
-if banner_filename:
     extension = os.path.splitext(
         banner_filename
     )[1].lower()
@@ -2102,6 +1809,7 @@ if banner_filename:
         banner_filename,
         "rb"
     ) as image_file:
+
         img_src = (
             f"data:{mime_type};base64,"
             f"{base64.b64encode(image_file.read()).decode()}"
@@ -2598,18 +2306,6 @@ try:
     }}
 
 
-    .footer-tools {{
-
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 10px;
-        margin-top: 15px;
-        width: 100%;
-
-    }}
-
-
     .watermark {{
 
         text-align: left;
@@ -2623,38 +2319,17 @@ try:
 
         letter-spacing: 1px;
 
-        margin: 0;
+        margin-top: 15px;
+
+        margin-left: 0;
+
+        margin-right: 0;
+
+        margin-bottom: 0;
 
         text-transform: none;
 
         user-select: none;
-
-    }}
-
-
-    .excel-bottom-btn {{
-
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 30px;
-        padding: 0 10px;
-        border-radius: 8px;
-        border: 1px solid rgba(255,255,255,0.22);
-        background: rgba(255,255,255,0.10);
-        color: #ffffff;
-        font-family: 'Montserrat', sans-serif;
-        font-size: 10px;
-        font-weight: 800;
-        text-decoration: none;
-        white-space: nowrap;
-
-    }}
-
-
-    .excel-bottom-btn:hover {{
-
-        background: rgba(255,255,255,0.18);
 
     }}
 
@@ -2675,21 +2350,6 @@ try:
             >
 
 
-        </div>
-
-        <div style="
-            width:100%;
-            text-align:left;
-            font-size:11px;
-            font-weight:400;
-            color:rgba(255,255,255,0.35);
-            margin:3px 0 0 0;
-            padding-left:4px;
-            line-height:1.2;
-            letter-spacing:0.1px;
-            box-sizing:border-box;
-        ">
-            © 2026 tosounidis 
         </div>
 
 
@@ -2979,42 +2639,6 @@ try:
         """
 
 
-        formatted_value_1 = (
-            format_currency_eur(
-                total_value_1
-            )
-        )
-
-
-        html_content += f"""
-
-        <div
-            class="poll-item total-item"
-        >
-
-            <div
-                class="poll-info"
-            >
-
-                <span>
-                    <b>
-                        TOTAL ΠΛΗΡΩΤΕΟ
-                    </b>
-                </span>
-
-                <span>
-                    <b>
-                        {formatted_value_1}
-                    </b>
-                </span>
-
-            </div>
-
-        </div>
-
-        """
-
-
     else:
 
 
@@ -3229,42 +2853,6 @@ try:
         """
 
 
-        formatted_value_2 = (
-            format_currency_eur(
-                total_value_2
-            )
-        )
-
-
-        html_content += f"""
-
-        <div
-            class="poll-item total-item"
-        >
-
-            <div
-                class="poll-info"
-            >
-
-                <span>
-                    <b>
-                        TOTAL ΠΛΗΡΩΤΕΟ
-                    </b>
-                </span>
-
-                <span>
-                    <b>
-                        {formatted_value_2}
-                    </b>
-                </span>
-
-            </div>
-
-        </div>
-
-        """
-
-
     else:
 
 
@@ -3436,6 +3024,10 @@ try:
 
     html_content += """
 
+            <div class="watermark">
+                tosounidis 2026
+            </div>
+
         </div>
 
     </div>
@@ -3449,98 +3041,6 @@ try:
         scrolling=True
     )
 
-    # ==================================================
-    # ΚΑΤΩ ΜΠΑΡΑ: ΥΔΑΤΟΓΡΑΦΗΜΑ + XLSX
-    # Το κουμπί είναι κανονικό Streamlit download_button,
-    # ώστε να διατηρείται πλήρως η δομή του Excel και τα φύλλα.
-    # ==================================================
-
-    bottom_left, bottom_excel, bottom_space = st.columns(
-        [1.25, 0.85, 7.90],
-        gap="small"
-    )
-
-    with bottom_left:
-        st.markdown(
-            """
-            <div style="
-                color: rgba(255,255,255,0.22);
-                font-size: 12px;
-                font-weight: 600;
-                letter-spacing: 1px;
-                padding-top: 8px;
-                white-space: nowrap;
-            ">
-                ver:004 
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with bottom_excel:
-
-        if excel_data is not None:
-
-            excel_b64 = base64.b64encode(
-                excel_data
-            ).decode("utf-8")
-
-            components.html(
-                f"""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="utf-8">
-                    <style>
-                        html, body {{
-                            margin: 0;
-                            padding: 0;
-                            background: transparent;
-                            overflow: hidden;
-                            font-family: Arial, sans-serif;
-                        }}
-
-                        .xlsx-btn {{
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            width: 100%;
-                            height: 38px;
-                            padding: 0 8px;
-                            border-radius: 8px;
-                            border: 1px solid rgba(255,255,255,0.25);
-                            background: #ffffff;
-                            color: #2c3e50;
-                            font-size: 11px;
-                            font-weight: 800;
-                            text-decoration: none;
-                            box-sizing: border-box;
-                            white-space: nowrap;
-                            cursor: pointer;
-                        }}
-                    </style>
-                </head>
-                <body>
-
-                    <a
-                        class="xlsx-btn"
-                        href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{excel_b64}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download="{excel_download_filename}"
-                    >
-                        ⬇ XLSX
-                    </a>
-
-                </body>
-                </html>
-                """,
-                height=42,
-                scrolling=False,
-            )
-
-        else:
-            st.caption("XLSX error")
 
 except Exception as e:
 
