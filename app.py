@@ -626,25 +626,12 @@ with col_input_space:
         "πουτογλιδης",
     ]
 
-    col_region_select, col_excel_button = st.columns([8, 1])
-
-    with col_region_select:
-
-        selected_region = st.selectbox(
-            "📍 ΠΕΡΙΦΕΡΕΙΑ",
-            options=region_options,
-            index=0,
-            format_func=lambda x: x.upper(),
-        )
-
-    with col_excel_button:
-
-        st.markdown(
-            "<div style='height: 27px;'></div>",
-            unsafe_allow_html=True,
-        )
-
-        excel_button_slot = st.empty()
+    selected_region = st.selectbox(
+        "📍 ΠΕΡΙΦΕΡΕΙΑ",
+        options=region_options,
+        index=0,
+        format_func=lambda x: x.upper(),
+    )
 
     active_filter = (
         selected_region.lower()
@@ -1725,34 +1712,6 @@ def build_excel_file():
     return output.getvalue()
 
 
-try:
-
-    excel_data = build_excel_file()
-
-    safe_region_name = (
-        normalize_text(selected_region)
-        .replace(" ", "_")
-    )
-
-    excel_button_slot.download_button(
-        label="⬇ XLSX",
-        data=excel_data,
-        file_name=(
-            f"sales_{safe_region_name}_"
-            f"{datetime.date.today().strftime('%Y%m%d')}.xlsx"
-        ),
-        mime=(
-            "application/vnd.openxmlformats-officedocument."
-            "spreadsheetml.sheet"
-        ),
-        key="download_current_sales_xlsx",
-    )
-
-except Exception as excel_error:
-
-    excel_button_slot.caption(
-        "XLSX error"
-    )
 
 
 # ==================================================
@@ -3042,3 +3001,38 @@ except Exception as e:
     st.error(
         f"Σφάλμα κατά τη φόρτωση του dashboard: {e}"
     )
+
+
+# ==================================================
+# ΚΟΥΜΠΙ XLSX - ΤΕΡΜΑ ΚΑΤΩ ΣΤΗΝ ΕΦΑΡΜΟΓΗ
+# ==================================================
+
+try:
+
+    excel_data = build_excel_file()
+
+    safe_region_name = (
+        normalize_text(selected_region)
+        .replace(" ", "_")
+    )
+
+    st.download_button(
+        label="⬇ XLSX",
+        data=excel_data,
+        file_name=(
+            f"sales_{safe_region_name}_"
+            f"{datetime.date.today().strftime('%Y%m%d')}.xlsx"
+        ),
+        mime=(
+            "application/vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        ),
+        key="download_current_sales_xlsx",
+    )
+
+except Exception as excel_error:
+
+    st.caption(
+        "XLSX error"
+    )
+
