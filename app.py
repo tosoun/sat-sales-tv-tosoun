@@ -1,6 +1,7 @@
 import base64
 import datetime
 import glob
+import hashlib
 import html
 import json
 import os
@@ -500,24 +501,61 @@ with col_admin:
                         </label>
                     </div>
                     <p id="state" role="status">Η μουσική είναι κλειστή. Πάτησε ON.</p>
-                    <audio id="music" loop preload="auto" src="__MUSIC_DATA__"></audio>
                     <script>
-                      const audio = document.getElementById('music');
+                      // Ο ήχος συνδέεται στο κύριο παράθυρο του Streamlit,
+                      // όχι στο iframe που αναδημιουργείται σε κάθε rerun.
                       const status = document.getElementById('state');
                       const slider = document.getElementById('volume');
                       const percentage = document.getElementById('percentage');
-                      audio.volume = Number(slider.value) / 100;
+                      const AUDIO_ID = 'sat-sales-persistent-music';
+                      let audio;
+                      let isPersistent = false;
+
+                      try {
+                        const parentDoc = window.parent.document;
+                        audio = parentDoc.getElementById(AUDIO_ID);
+                        if (!audio) {
+                          audio = parentDoc.createElement('audio');
+                          audio.id = AUDIO_ID;
+                          audio.loop = true;
+                          audio.preload = 'auto';
+                          audio.style.display = 'none';
+                          audio.src = '__MUSIC_DATA__';
+                          audio.volume = Number(slider.value) / 100;
+                          parentDoc.body.appendChild(audio);
+                        }
+                        isPersistent = true;
+                      } catch (err) {
+                        // Fallback σε browsers που απομονώνουν τα iframes.
+                        audio = document.createElement('audio');
+                        audio.loop = true;
+                        audio.preload = 'auto';
+                        audio.src = '__MUSIC_DATA__';
+                        audio.volume = Number(slider.value) / 100;
+                        document.body.appendChild(audio);
+                        status.textContent = 'Ο browser περιορίζει τη συνέχεια της μουσικής.';
+                      }
+
+                      function reflectAudioState() {
+                        slider.value = String(Math.round(audio.volume * 100));
+                        percentage.textContent = slider.value + '%';
+                        status.textContent = audio.paused
+                          ? 'Η μουσική είναι κλειστή. Πάτησε ON.'
+                          : 'Η μουσική παίζει.';
+                      }
+                      reflectAudioState();
 
                       slider.addEventListener('input', () => {
                         audio.volume = Number(slider.value) / 100;
                         percentage.textContent = slider.value + '%';
                       });
 
-                      // Το play() καλείται απευθείας από πάτημα του χρήστη στο ίδιο iframe.
                       document.getElementById('start').addEventListener('click', async () => {
                         try {
                           await audio.play();
-                          status.textContent = 'Η μουσική παίζει.';
+                          status.textContent = isPersistent
+                            ? 'Η μουσική παίζει και συνεχίζει στην ενημέρωση των πωλήσεων.'
+                            : 'Η μουσική παίζει (η ανανέωση μπορεί να τη σταματήσει).';
                         } catch (err) {
                           status.textContent = 'Ο browser μπλόκαρε τον ήχο: ' + err.name;
                         }
@@ -541,25 +579,27 @@ with col_admin:
                     "__MUSIC_DATA__", "data:audio/mpeg;base64," + admin_music_base64
                 )
                 components.html(admin_player_html, height=105, scrolling=False)
-                st.caption("Η μουσική ξεκινά με πάτημα ON εδώ στο Admin. Αν ανανεωθεί η σελίδα, πάτησε ξανά ON.")
+                st.caption("Πάτησε ON για εκκίνηση. Το MP3 συνεχίζει κατά την ενημέρωση των πωλήσεων όσο μένει ανοικτή η σελίδα.")
             else:
                 st.warning("Δεν βρέθηκε το background_music.mp3 δίπλα στο app.py.")
 
-            if (
-                uploaded_file_1 is not None
-                and (
-                    selected_product_count == 1
-                    or uploaded_file_2 is not None
-                )
+            # Μόνο νέα αρχεία προκαλούν μεταφόρτωση στο GitHub.
+            # Έτσι αποφεύγονται επαναλαμβανόμενες ενημερώσεις σε κάθε rerun.
+            upload_signature = None
+            if uploaded_file_1 is not None and (
+                selected_product_count == 1 or uploaded_file_2 is not None
             ):
+                digest = hashlib.sha256()
+                digest.update(str(selected_product_count).encode("ascii"))
+                for file_item in (uploaded_file_1, uploaded_file_2):
+                    if file_item is not None:
+                        digest.update(file_item.name.encode("utf-8"))
+                        digest.update(file_item.getbuffer())
+                upload_signature = digest.hexdigest()
 
-                upload_signature = (
-                    f"{selected_product_count}_"
-                    f"{uploaded_file_1.name}_"
-                    f"{uploaded_file_2.name if uploaded_file_2 is not None else ''}_"
-                    f"{uploaded_file_1.size}_"
-                    f"{uploaded_file_2.size if uploaded_file_2 is not None else 0}"
-                )
+            if upload_signature is not None and (
+                upload_signature != st.session_state.get("last_uploaded_sig")
+            ):
 
                 gh_token = None
                 repo_name = None
@@ -735,25 +775,6 @@ with col_admin:
                         "επιτυχώς!"
                     )
 
-                components.html(
-                    """
-                    <script>
-
-                    setTimeout(
-                        function() {
-
-                            window.parent
-                            .location
-                            .reload();
-
-                        },
-                        1500
-                    );
-
-                    </script>
-                    """,
-                    height=0,
-                )
 
         elif password:
 
