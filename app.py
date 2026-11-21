@@ -80,6 +80,24 @@ date_path = "upload_date.txt"
 confetti_path = "confetti_status.txt"
 cheer_path = "cheer_status.txt"
 product_count_path = "product_count.txt"
+music_settings_path = "music_settings.json"
+
+
+def load_music_settings():
+    """Ρυθμίσεις μουσικής μόνο από το Admin (χωρίς ορατά χειριστήρια)."""
+    defaults = {"enabled": False, "volume": 25}
+    try:
+        with open(music_settings_path, "r", encoding="utf-8") as music_conf:
+            saved = json.load(music_conf)
+        return {
+            "enabled": saved.get("enabled") is True,
+            "volume": max(0, min(100, int(saved.get("volume", 25)))),
+        }
+    except (OSError, ValueError, TypeError, AttributeError):
+        return defaults
+
+
+music_settings = load_music_settings()
 
 # Η τελευταία επιλογή (1 ή 2 προϊόντα) διατηρείται για όλους τους επισκέπτες.
 def load_product_count():
@@ -437,6 +455,57 @@ with col_admin:
                     horizontal=True,
                     key="cheer_radio",
                 )
+
+            # Η μουσική ελέγχεται ΜΟΝΟ από το διαχειριστικό.
+            # Δεν εμφανίζεται χειριστήριο στη δημόσια οθόνη.
+            st.markdown("---")
+            st.markdown("🎵 **Μουσική υπόκρουση**")
+
+            admin_music_enabled = st.radio(
+                "Μουσική:",
+                options=["OFF", "ON"],
+                index=1 if music_settings["enabled"] else 0,
+                horizontal=True,
+                key="admin_music_enabled",
+            )
+
+            admin_music_volume = st.slider(
+                "Ένταση μουσικής (%)",
+                min_value=0,
+                max_value=100,
+                value=music_settings["volume"],
+                step=5,
+                key="admin_music_volume",
+            )
+
+            if st.button("💾 Αποθήκευση μουσικής", key="save_music_settings"):
+                music_settings = {
+                    "enabled": admin_music_enabled == "ON",
+                    "volume": admin_music_volume,
+                }
+                with open(music_settings_path, "w", encoding="utf-8") as music_conf:
+                    json.dump(music_settings, music_conf, ensure_ascii=False)
+
+                # Ίδιος μηχανισμός GitHub με την υπάρχουσα αποστολή Excel.
+                try:
+                    music_gh_token = st.secrets.get("GITHUB_TOKEN")
+                    music_repo_name = st.secrets.get("REPO_NAME")
+                except Exception:
+                    music_gh_token = None
+                    music_repo_name = None
+
+                if music_gh_token and music_repo_name:
+                    if upload_to_github(
+                        music_settings_path,
+                        music_repo_name,
+                        music_gh_token,
+                        "Update music settings",
+                    ):
+                        st.success("Οι ρυθμίσεις μουσικής αποθηκεύτηκαν.")
+                    else:
+                        st.warning("Οι ρυθμίσεις ισχύουν προσωρινά στον server, αλλά δεν αποθηκεύτηκαν στο GitHub.")
+                else:
+                    st.warning("Οι ρυθμίσεις αποθηκεύτηκαν στον server, αλλά μπορεί να χαθούν σε επανεκκίνηση (δεν υπάρχει σύνδεση GitHub).")
 
             if (
                 uploaded_file_1 is not None
@@ -1939,6 +2008,64 @@ if banner_files:
         img_src = ""
 
 # ==================================================
+# ΠΡΟΑΙΡΕΤΙΚΗ ΜΟΥΣΙΚΗ ΥΠΟΚΡΟΥΣΗ - ON/OFF & ΕΝΤΑΣΗ
+# Τοποθετούμε το background_music.mp3 δίπλα στο app.py.
+# ==================================================
+
+music_player_html = ""
+music_file = os.path.join(app_dir, "background_music.mp3")
+
+if os.path.isfile(music_file):
+    try:
+        with open(music_file, "rb") as music_stream:
+            music_base64 = base64.b64encode(music_stream.read()).decode("ascii")
+
+        # Μόνο ήχος στη δημόσια οθόνη, ΧΩΡΙΣ κουμπιά / slider / λωρίδα.
+        # Το ON/OFF και η ένταση ορίζονται αποκλειστικά από το Admin.
+        music_player_html = """
+        <audio id="backgroundMusic" preload="auto" loop hidden
+               src="__MUSIC_DATA__"></audio>
+        <script>
+        (function () {
+            const audio = document.getElementById('backgroundMusic');
+            if (!audio) return;
+            const enabled = __MUSIC_ENABLED__;
+            const volume = __MUSIC_VOLUME__;
+            audio.volume = volume / 100;
+            if (!enabled) return;
+
+            function tryPlay() {
+                if (!audio.paused) return;
+                const result = audio.play();
+                if (result && typeof result.catch === 'function') {
+                    result.catch(function () {
+                        // Ο browser ενδέχεται να απαιτεί πρώτα ενέργεια χρήστη.
+                    });
+                }
+            }
+
+            // Προσπάθεια αυτόματης έναρξης όπου το επιτρέπει ο browser.
+            tryPlay();
+            // Εάν ο browser μπλοκάρει το autoplay, ξαναδοκιμάζουμε σε κλικ.
+            document.addEventListener('pointerdown', tryPlay, true);
+            document.addEventListener('keydown', tryPlay, true);
+            try {
+                // Για αλληλεπιδράσεις στα Streamlit controls, εκτός iframe.
+                window.parent.document.addEventListener('pointerdown', tryPlay, true);
+                window.parent.document.addEventListener('keydown', tryPlay, true);
+            } catch (err) {
+                // Σε cross-origin περιορισμούς δεν υπάρχει πρόσβαση στο parent.
+            }
+        })();
+        </script>
+        """.replace("__MUSIC_DATA__", "data:audio/mpeg;base64," + music_base64)
+        music_player_html = music_player_html.replace(
+            "__MUSIC_ENABLED__", "true" if music_settings["enabled"] else "false"
+        ).replace("__MUSIC_VOLUME__", str(music_settings["volume"]))
+    except OSError:
+        music_player_html = ""
+
+# ==================================================
 # HTML
 # ==================================================
 
@@ -2079,7 +2206,6 @@ try:
         padding: 0;
 
     }}
-
 
     /* Κυλιόμενοι κωδικοί χαμηλών πωλήσεων, χωρίς χρωματιστή λωρίδα */
     @keyframes sales-warning-scroll {{
@@ -2502,6 +2628,7 @@ try:
 
         {ticker_html}
 
+        {music_player_html}
 
         <div class="content-wrapper">
 
