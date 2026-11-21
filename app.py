@@ -438,6 +438,135 @@ with col_admin:
                     key="cheer_radio",
                 )
 
+            # Η μουσική ελέγχεται αποκλειστικά από το Admin.
+            # Το πάτημα ON γίνεται ΜΕΣΑ στο audio iframe, ώστε να επιτρέπεται
+            # η αναπαραγωγή από τους browsers που μπλοκάρουν το autoplay.
+            st.markdown("---")
+            st.markdown("🎵 **Μουσική υπόκρουση**")
+
+            admin_music_file = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "background_music.mp3",
+            )
+            if os.path.isfile(admin_music_file):
+                # Stream the publicly uploaded MP3 instead of embedding its
+                # bytes in the dashboard every time the Excel widget reruns.
+                admin_music_url = (
+                    "https://raw.githubusercontent.com/"
+                    "tosoun/sat-sales-tv-tosoun/main/background_music.mp3"
+                )
+
+                admin_player_html = r"""
+                <!doctype html>
+                <html lang="el">
+                <head>
+                    <meta charset="utf-8">
+                    <style>
+                        body { margin: 0; font: 14px sans-serif; color: #222; }
+                        .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+                        button { cursor: pointer; border-radius: 6px; padding: 7px 15px;
+                                 font-size: 14px; font-weight: bold; border: 1px solid #aaa; }
+                        #start { background: #157347; border-color: #157347; color: #fff; }
+                        #stop { background: #f5f5f5; }
+                        label { display: flex; align-items: center; gap: 8px; }
+                        input[type=range] { width: 125px; accent-color: #157347; }
+                        #state { margin: 12px 0 0; font-size: 12px; color: #555; }
+                    </style>
+                </head>
+                <body>
+                    <div class="controls">
+                        <button id="start" type="button">▶ ON</button>
+                        <button id="stop" type="button">■ OFF</button>
+                        <label for="volume">🔊 Ένταση
+                            <input id="volume" type="range" min="0" max="100"
+                                   step="5" value="__INITIAL_VOLUME__">
+                            <span id="percentage">__INITIAL_VOLUME__%</span>
+                        </label>
+                    </div>
+                    <p id="state" role="status">Η μουσική είναι κλειστή. Πάτησε ON.</p>
+                    <script>
+                      // Ο ήχος συνδέεται στο κύριο παράθυρο του Streamlit,
+                      // όχι στο iframe που αναδημιουργείται σε κάθε rerun.
+                      const status = document.getElementById('state');
+                      const slider = document.getElementById('volume');
+                      const percentage = document.getElementById('percentage');
+                      const AUDIO_ID = 'sat-sales-persistent-music';
+                      let audio;
+                      let isPersistent = false;
+
+                      try {
+                        const parentDoc = window.parent.document;
+                        audio = parentDoc.getElementById(AUDIO_ID);
+                        if (!audio) {
+                          audio = parentDoc.createElement('audio');
+                          audio.id = AUDIO_ID;
+                          audio.loop = true;
+                          audio.preload = 'none';
+                          audio.style.display = 'none';
+                          audio.src = '__MUSIC_DATA__';
+                          audio.volume = Number(slider.value) / 100;
+                          parentDoc.body.appendChild(audio);
+                        }
+                        isPersistent = true;
+                      } catch (err) {
+                        // Fallback σε browsers που απομονώνουν τα iframes.
+                        audio = document.createElement('audio');
+                        audio.loop = true;
+                        audio.preload = 'none';
+                        audio.src = '__MUSIC_DATA__';
+                        audio.volume = Number(slider.value) / 100;
+                        document.body.appendChild(audio);
+                        status.textContent = 'Ο browser περιορίζει τη συνέχεια της μουσικής.';
+                      }
+
+                      function reflectAudioState() {
+                        slider.value = String(Math.round(audio.volume * 100));
+                        percentage.textContent = slider.value + '%';
+                        status.textContent = audio.paused
+                          ? 'Η μουσική είναι κλειστή. Πάτησε ON.'
+                          : 'Η μουσική παίζει.';
+                      }
+                      reflectAudioState();
+
+                      slider.addEventListener('input', () => {
+                        audio.volume = Number(slider.value) / 100;
+                        percentage.textContent = slider.value + '%';
+                      });
+
+                      document.getElementById('start').addEventListener('click', async () => {
+                        try {
+                          await audio.play();
+                          status.textContent = isPersistent
+                            ? 'Η μουσική παίζει και συνεχίζει στην ενημέρωση των πωλήσεων.'
+                            : 'Η μουσική παίζει (η ανανέωση μπορεί να τη σταματήσει).';
+                        } catch (err) {
+                          status.textContent = 'Ο browser μπλόκαρε τον ήχο: ' + err.name;
+                        }
+                      });
+
+                      document.getElementById('stop').addEventListener('click', () => {
+                        audio.pause();
+                        audio.currentTime = 0;
+                        status.textContent = 'Η μουσική σταμάτησε.';
+                      });
+
+                      audio.addEventListener('error', () => {
+                        status.textContent = 'Δεν μπορεί να φορτωθεί το MP3.';
+                      });
+                    </script>
+                </body>
+                </html>
+                """.replace(
+                    "__INITIAL_VOLUME__", "25"
+                ).replace(
+                    "__MUSIC_DATA__", admin_music_url
+                )
+                components.html(admin_player_html, height=105, scrolling=False)
+                st.caption("Πάτησε ON για εκκίνηση. Η μουσική μπορεί να σταματήσει σε πλήρη ανανέωση της σελίδας.")
+            else:
+                st.warning("Δεν βρέθηκε το background_music.mp3 δίπλα στο app.py.")
+
+
             if (
                 uploaded_file_1 is not None
                 and (
@@ -619,34 +748,13 @@ with col_admin:
 
                 if selected_product_count == 1:
                     st.success(
-                        "Το αρχείο ανέβηκε αυτόματα και συγχρονίστηκε επιτυχώς!"
+                        "Το Excel καταχωρήθηκε και οι πωλήσεις ενημερώθηκαν."
                     )
                 else:
                     st.success(
-                        "Και τα δύο αρχεία ανέβηκαν "
-                        "αυτόματα και συγχρονίστηκαν "
-                        "επιτυχώς!"
+                        "Τα δύο Excel καταχωρήθηκαν και οι πωλήσεις ενημερώθηκαν."
                     )
 
-                components.html(
-                    """
-                    <script>
-
-                    setTimeout(
-                        function() {
-
-                            window.parent
-                            .location
-                            .reload();
-
-                        },
-                        1500
-                    );
-
-                    </script>
-                    """,
-                    height=0,
-                )
 
         elif password:
 
