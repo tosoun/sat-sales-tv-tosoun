@@ -257,6 +257,51 @@ st.markdown(
 )
 
 
+
+# Έλεγχος αρχείου Excel πριν από την καταχώρηση.
+# Δεν αλλάζει τον τρόπο παρουσίασης των πωλήσεων.
+def validate_uploaded_sales_file(file_bytes, display_name):
+    try:
+        preview = pd.read_excel(BytesIO(file_bytes), header=None)
+        if preview.empty:
+            raise ValueError("Το αρχείο Excel είναι κενό.")
+
+        def normalized(v):
+            txt = unicodedata.normalize("NFD", str(v).strip().lower())
+            return "".join(c for c in txt if unicodedata.category(c) != "Mn")
+
+        header_idx = None
+        store_idx = quantity_idx = None
+        for i in range(len(preview)):
+            labels = [normalized(x) for x in preview.iloc[i].values]
+            stores = [j for j, x in enumerate(labels) if "καταστημα" in x]
+            quantities = [j for j, x in enumerate(labels) if "ποσοτ" in x]
+            if stores and quantities:
+                header_idx = i
+                store_idx = stores[0]
+                quantity_idx = quantities[0]
+                break
+        if header_idx is None:
+            raise ValueError("Δεν βρέθηκαν οι στήλες ΚΑΤΑΣΤΗΜΑ και ΠΟΣΟΤΗΤΑ/ΠΟΣΟΤΗΤΕΣ.")
+
+        data = preview.iloc[header_idx + 1:]
+        stores = data.iloc[:, store_idx].astype(str).str.strip()
+        quantities = data.iloc[:, quantity_idx]
+        valid = (stores.ne('') & stores.str.lower().ne('nan')
+                 & ~stores.str.contains(r"total|σύνολο|συνολο|κατάστημα", case=False, regex=True, na=False))
+        quantities = quantities.loc[valid].apply(
+            lambda x: float(x) if isinstance(x, (float, int)) else
+            float(str(x).replace('.', '').replace(',', '.')) if ',' in str(x) else float(str(x))
+            if str(x).replace('.', '', 1).isdigit() else float('nan')
+        )
+        valid_sales = quantities.notna().sum()
+        if valid_sales == 0:
+            raise ValueError("Δεν βρέθηκαν αριθμητικές ποσότητες στα καταστήματα.")
+        return int(valid_sales), float(quantities.sum())
+    except Exception as exc:
+        raise ValueError(f"{display_name}: {exc}") from exc
+
+
 col_admin, col_input_space = st.columns([4, 4])
 
 
@@ -567,6 +612,23 @@ with col_admin:
                 st.warning("Δεν βρέθηκε το background_music.mp3 δίπλα στο app.py.")
 
 
+            # Δεν γράφουμε Excel αν λείπουν οι αναγκαίες στήλες.
+            upload_sales_checks = None
+            if (uploaded_file_1 is not None and
+                    (selected_product_count == 1 or uploaded_file_2 is not None)):
+                try:
+                    bytes_1 = uploaded_file_1.getvalue()
+                    check_1 = validate_uploaded_sales_file(bytes_1, uploaded_file_1.name)
+                    bytes_2 = None
+                    check_2 = None
+                    if selected_product_count == 2:
+                        bytes_2 = uploaded_file_2.getvalue()
+                        check_2 = validate_uploaded_sales_file(bytes_2, uploaded_file_2.name)
+                    upload_sales_checks = (check_1, check_2)
+                except ValueError as error:
+                    st.error(f"Δεν ενημερώθηκαν οι πωλήσεις: {error}")
+                    uploaded_file_1 = None
+
             if (
                 uploaded_file_1 is not None
                 and (
@@ -680,10 +742,11 @@ with col_admin:
                     "wb"
                 ) as f:
 
-                    f.write(
-                        uploaded_file_1
-                        .getbuffer()
-                    )
+                    f.write(bytes_1)
+
+                # Τα νέα δεδομένα διαβάζονται και από τη μνήμη της τρέχουσας
+                # συνεδρίας, ακόμη κι αν το προσωρινό αρχείο διαγραφεί.
+                st.session_state["sales_data_excel_1"] = bytes_1
 
                 if gh_token and repo_name:
 
@@ -700,10 +763,9 @@ with col_admin:
                         "wb"
                     ) as f:
 
-                        f.write(
-                            uploaded_file_2
-                            .getbuffer()
-                        )
+                        f.write(bytes_2)
+
+                    st.session_state["sales_data_excel_2"] = bytes_2
 
                     if gh_token and repo_name:
 
@@ -717,6 +779,7 @@ with col_admin:
                 with open(product_count_path, "w", encoding="utf-8") as count_file:
                     count_file.write(str(selected_product_count))
                 active_product_count = selected_product_count
+                st.session_state["sales_data_product_count"] = selected_product_count
 
                 if gh_token and repo_name:
                     upload_to_github(
@@ -748,11 +811,14 @@ with col_admin:
 
                 if selected_product_count == 1:
                     st.success(
-                        "Το Excel καταχωρήθηκε και οι πωλήσεις ενημερώθηκαν."
+                        f"Το Excel διαβάστηκε: {upload_sales_checks[0][0]} γραμμές καταστημάτων, "
+                        f"ποσότητα {upload_sales_checks[0][1]:,.2f}. Οι πωλήσεις ανανεώθηκαν στην παρούσα συνεδρία."
                     )
                 else:
                     st.success(
-                        "Τα δύο Excel καταχωρήθηκαν και οι πωλήσεις ενημερώθηκαν."
+                        f"Τα δύο Excel διαβάστηκαν: {upload_sales_checks[0][0]} και "
+                        f"{upload_sales_checks[1][0]} γραμμές καταστημάτων. "
+                        "Οι πωλήσεις ανανεώθηκαν στην παρούσα συνεδρία."
                     )
 
 
@@ -847,23 +913,20 @@ if os.path.exists(date_path):
 # DATA
 # ==================================================
 
-def load_data(path):
-
-    if os.path.exists(path):
-
+def load_data(path, state_key=None):
+    if state_key and st.session_state.get(state_key) is not None:
         try:
-
-            df = pd.read_excel(
-                path,
-                header=None
-            )
-
-            return df
-
-        except Exception:
-
+            return pd.read_excel(BytesIO(st.session_state[state_key]), header=None)
+        except Exception as exc:
+            st.error(f"Δεν μπορεί να διαβαστεί το Excel της συνεδρίας: {exc}")
             return pd.DataFrame()
 
+    if os.path.exists(path):
+        try:
+            return pd.read_excel(path, header=None)
+        except Exception as exc:
+            st.error(f"Δεν μπορεί να διαβαστεί το Excel {path}: {exc}")
+            return pd.DataFrame()
     return pd.DataFrame()
 
 
@@ -1656,7 +1719,7 @@ GROUPS_MAPPING = {
 
 title_1, df_stores_1, _, max_sales_1 = (
     process_sales_df(
-        load_data(excel_path_1),
+        load_data(excel_path_1, "sales_data_excel_1"),
         file_name=excel_path_1
     )
 )
@@ -1664,7 +1727,7 @@ title_1, df_stores_1, _, max_sales_1 = (
 
 title_2, df_stores_2, _, max_sales_2 = (
     process_sales_df(
-        load_data(excel_path_2),
+        load_data(excel_path_2, "sales_data_excel_2"),
         file_name=excel_path_2
     )
 )
