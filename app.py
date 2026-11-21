@@ -78,6 +78,21 @@ date_path = "upload_date.txt"
 
 confetti_path = "confetti_status.txt"
 cheer_path = "cheer_status.txt"
+product_count_path = "product_count.txt"
+
+# Η τελευταία επιλογή (1 ή 2 προϊόντα) διατηρείται για όλους τους επισκέπτες.
+def load_product_count():
+    try:
+        with open(product_count_path, "r", encoding="utf-8") as f:
+            saved_count = int(f.read().strip())
+        if saved_count in (1, 2):
+            return saved_count
+    except (OSError, ValueError):
+        pass
+    return 2
+
+
+active_product_count = load_product_count()
 
 
 def upload_to_github(
@@ -265,6 +280,14 @@ with col_admin:
 
             st.markdown("---")
 
+            selected_product_count = st.radio(
+                "Πόσα προϊόντα θα καταχωρήσετε;",
+                options=[1, 2],
+                index=0 if active_product_count == 1 else 1,
+                horizontal=True,
+                key="upload_product_count",
+            )
+
             col_up1, col_up2 = st.columns(2)
 
             with col_up1:
@@ -275,13 +298,14 @@ with col_admin:
                     key="up1",
                 )
 
-            with col_up2:
-
-                uploaded_file_2 = st.file_uploader(
-                    "Αρχείο 2 (S3 - Πωλήσεις Ειδών-6):",
-                    type=["xlsx"],
-                    key="up2",
-                )
+            uploaded_file_2 = None
+            if selected_product_count == 2:
+                with col_up2:
+                    uploaded_file_2 = st.file_uploader(
+                        "Αρχείο 2 (S3 - Πωλήσεις Ειδών-6):",
+                        type=["xlsx"],
+                        key="up2",
+                    )
 
             st.markdown("---")
 
@@ -415,15 +439,18 @@ with col_admin:
 
             if (
                 uploaded_file_1 is not None
-                and
-                uploaded_file_2 is not None
+                and (
+                    selected_product_count == 1
+                    or uploaded_file_2 is not None
+                )
             ):
 
                 upload_signature = (
+                    f"{selected_product_count}_"
                     f"{uploaded_file_1.name}_"
-                    f"{uploaded_file_2.name}_"
+                    f"{uploaded_file_2.name if uploaded_file_2 is not None else ''}_"
                     f"{uploaded_file_1.size}_"
-                    f"{uploaded_file_2.size}"
+                    f"{uploaded_file_2.size if uploaded_file_2 is not None else 0}"
                 )
 
                 gh_token = None
@@ -537,23 +564,36 @@ with col_admin:
                         "Auto-update sales file 1",
                     )
 
-                with open(
-                    excel_path_2,
-                    "wb"
-                ) as f:
+                if selected_product_count == 2:
+                    with open(
+                        excel_path_2,
+                        "wb"
+                    ) as f:
 
-                    f.write(
-                        uploaded_file_2
-                        .getbuffer()
-                    )
+                        f.write(
+                            uploaded_file_2
+                            .getbuffer()
+                        )
+
+                    if gh_token and repo_name:
+
+                        upload_to_github(
+                            excel_path_2,
+                            repo_name,
+                            gh_token,
+                            "Auto-update sales file 2",
+                        )
+
+                with open(product_count_path, "w", encoding="utf-8") as count_file:
+                    count_file.write(str(selected_product_count))
+                active_product_count = selected_product_count
 
                 if gh_token and repo_name:
-
                     upload_to_github(
-                        excel_path_2,
+                        product_count_path,
                         repo_name,
                         gh_token,
-                        "Auto-update sales file 2",
+                        "Update number of products",
                     )
 
                 if gh_token and repo_name:
@@ -576,11 +616,16 @@ with col_admin:
                     "last_uploaded_sig"
                 ] = upload_signature
 
-                st.success(
-                    "Και τα δύο αρχεία ανέβηκαν "
-                    "αυτόματα και συγχρονίστηκαν "
-                    "επιτυχώς!"
-                )
+                if selected_product_count == 1:
+                    st.success(
+                        "Το αρχείο ανέβηκε αυτόματα και συγχρονίστηκε επιτυχώς!"
+                    )
+                else:
+                    st.success(
+                        "Και τα δύο αρχεία ανέβηκαν "
+                        "αυτόματα και συγχρονίστηκαν "
+                        "επιτυχώς!"
+                    )
 
                 components.html(
                     """
@@ -1703,14 +1748,17 @@ def build_excel_file():
         total_sum_2
     )
 
+    summary_rows = [
+        ["Περιφέρεια", selected_region.upper()],
+        ["Ημερομηνία", file_date_str],
+        ["Ώρα", file_time_str],
+        ["Προϊόν 1", title_1],
+    ]
+    if active_product_count == 2:
+        summary_rows.append(["Προϊόν 2", title_2])
+
     summary_df = pd.DataFrame(
-        [
-            ["Περιφέρεια", selected_region.upper()],
-            ["Ημερομηνία", file_date_str],
-            ["Ώρα", file_time_str],
-            ["Προϊόν 1", title_1],
-            ["Προϊόν 2", title_2],
-        ],
+        summary_rows,
         columns=[
             "Πεδίο",
             "Τιμή"
@@ -1734,17 +1782,15 @@ def build_excel_file():
             index=False
         )
 
-        export_2.to_excel(
-            writer,
-            sheet_name="Προϊόν 2",
-            index=False
-        )
+        if active_product_count == 2:
+            export_2.to_excel(
+                writer,
+                sheet_name="Προϊόν 2",
+                index=False
+            )
 
-        for sheet_name in [
-            "Σύνοψη",
-            "Προϊόν 1",
-            "Προϊόν 2"
-        ]:
+        for sheet_name in (["Σύνοψη", "Προϊόν 1"] +
+                           (["Προϊόν 2"] if active_product_count == 2 else [])):
 
             ws = writer.book[sheet_name]
 
@@ -2680,225 +2726,226 @@ try:
     html_content += "</div>"
 
 
-    # ==================================================
-    # ΣΤΗΛΗ 2
-    # ==================================================
+    if active_product_count == 2:
+        # ==================================================
+        # ΣΤΗΛΗ 2
+        # ==================================================
 
-    html_content += (
-        '<div class="product-column">'
-    )
-
-
-    html_content += (
-        f'<div class="sub-title">'
-        f'{title_2}'
-        f'</div>'
-    )
-
-
-    if not df_stores_2.empty:
-
-
-        for index, row in (
-            df_stores_2.iterrows()
-        ):
-
-
-            katastima = str(
-                row["Κατάστημα"]
-            )
-
-
-            if (
-                katastima.lower() == "nan"
-                or
-                not katastima.strip()
-            ):
-
-                continue
-
-
-            num = row["Num_Sales"]
-
-
-            formatted_num = (
-                format_smart_num(num)
-            )
-
-
-            bar_width = (
-
-                round(
-                    (
-                        num
-                        /
-                        max_sales_2
-                    )
-                    *
-                    100
-                )
-
-                if max_sales_2 > 0
-
-                else 0
-
-            )
-
-
-            if bar_width > 100:
-                bar_width = 100
-
-
-            if index == 0:
-
-
-                html_content += f"""
-
-                <div class="poll-item">
-
-                    <div class="poll-info">
-
-                        <span>
-                            <b>
-                                {katastima}
-                            </b>
-                        </span>
-
-                        <span
-                            class="win-number-first"
-                        >
-                            {formatted_num} τμχ/κιλ
-                        </span>
-
-                    </div>
-
-
-                    <div
-                        class="progress-bar-bg"
-                    >
-
-                        <div
-                            class="progress-fill"
-                            style="width: {bar_width}%;"
-                        >
-                        </div>
-
-                    </div>
-
-                </div>
-
-                """
-
-
-            else:
-
-
-                html_content += f"""
-
-                <div class="poll-item">
-
-                    <div class="poll-info">
-
-                        <span>
-                            <b>
-                                {katastima}
-                            </b>
-                        </span>
-
-                        <span>
-                            <b>
-                                {formatted_num} τμχ/κιλ
-                            </b>
-                        </span>
-
-                    </div>
-
-
-                    <div
-                        class="progress-bar-bg"
-                    >
-
-                        <div
-                            class="progress-fill"
-                            style="width: {bar_width}%;"
-                        >
-                        </div>
-
-                    </div>
-
-                </div>
-
-                """
-
-
-        formatted_total_2 = (
-            format_smart_num(
-                total_sum_2
-            )
+        html_content += (
+            '<div class="product-column">'
         )
-        formatted_value_2 = (
-            format_sales_euros(total_value_2)
-            if pd.notna(total_value_2) else "Μη διαθέσιμη"
-        )
-
-
-        html_content += f"""
-
-        <div
-            class="poll-item total-item"
-        >
-
-            <div
-                class="poll-info"
-            >
-
-                <span>
-                    <b>
-                        TOTAL
-                    </b>
-                </span>
-
-                <span>
-                    <b>
-                        {formatted_total_2} τμχ/κιλ
-                    </b>
-                    <small style="display:block; color:#ffd166; font-size:12px; font-weight:700;">
-                        Αξία: {formatted_value_2}
-                    </small>
-                </span>
-
-            </div>
-
-
-            <div
-                class="progress-bar-bg"
-            >
-
-                <div
-                    class="progress-fill"
-                    style="width: 100%;"
-                >
-                </div>
-
-            </div>
-
-        </div>
-
-        """
-
-
-    else:
 
 
         html_content += (
-            '<div '
-            'style="color: white; padding: 20px;">'
-            'Δεν βρέθηκαν δεδομένα.'
-            '</div>'
+            f'<div class="sub-title">'
+            f'{title_2}'
+            f'</div>'
         )
 
 
-    html_content += "</div>"
+        if not df_stores_2.empty:
+
+
+            for index, row in (
+                df_stores_2.iterrows()
+            ):
+
+
+                katastima = str(
+                    row["Κατάστημα"]
+                )
+
+
+                if (
+                    katastima.lower() == "nan"
+                    or
+                    not katastima.strip()
+                ):
+
+                    continue
+
+
+                num = row["Num_Sales"]
+
+
+                formatted_num = (
+                    format_smart_num(num)
+                )
+
+
+                bar_width = (
+
+                    round(
+                        (
+                            num
+                            /
+                            max_sales_2
+                        )
+                        *
+                        100
+                    )
+
+                    if max_sales_2 > 0
+
+                    else 0
+
+                )
+
+
+                if bar_width > 100:
+                    bar_width = 100
+
+
+                if index == 0:
+
+
+                    html_content += f"""
+
+                    <div class="poll-item">
+
+                        <div class="poll-info">
+
+                            <span>
+                                <b>
+                                    {katastima}
+                                </b>
+                            </span>
+
+                            <span
+                                class="win-number-first"
+                            >
+                                {formatted_num} τμχ/κιλ
+                            </span>
+
+                        </div>
+
+
+                        <div
+                            class="progress-bar-bg"
+                        >
+
+                            <div
+                                class="progress-fill"
+                                style="width: {bar_width}%;"
+                            >
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    """
+
+
+                else:
+
+
+                    html_content += f"""
+
+                    <div class="poll-item">
+
+                        <div class="poll-info">
+
+                            <span>
+                                <b>
+                                    {katastima}
+                                </b>
+                            </span>
+
+                            <span>
+                                <b>
+                                    {formatted_num} τμχ/κιλ
+                                </b>
+                            </span>
+
+                        </div>
+
+
+                        <div
+                            class="progress-bar-bg"
+                        >
+
+                            <div
+                                class="progress-fill"
+                                style="width: {bar_width}%;"
+                            >
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    """
+
+
+            formatted_total_2 = (
+                format_smart_num(
+                    total_sum_2
+                )
+            )
+            formatted_value_2 = (
+                format_sales_euros(total_value_2)
+                if pd.notna(total_value_2) else "Μη διαθέσιμη"
+            )
+
+
+            html_content += f"""
+
+            <div
+                class="poll-item total-item"
+            >
+
+                <div
+                    class="poll-info"
+                >
+
+                    <span>
+                        <b>
+                            TOTAL
+                        </b>
+                    </span>
+
+                    <span>
+                        <b>
+                            {formatted_total_2} τμχ/κιλ
+                        </b>
+                        <small style="display:block; color:#ffd166; font-size:12px; font-weight:700;">
+                            Αξία: {formatted_value_2}
+                        </small>
+                    </span>
+
+                </div>
+
+
+                <div
+                    class="progress-bar-bg"
+                >
+
+                    <div
+                        class="progress-fill"
+                        style="width: 100%;"
+                    >
+                    </div>
+
+                </div>
+
+            </div>
+
+            """
+
+
+        else:
+
+
+            html_content += (
+                '<div '
+                'style="color: white; padding: 20px;">'
+                'Δεν βρέθηκαν δεδομένα.'
+                '</div>'
+            )
+
+
+        html_content += "</div>"
 
 
     html_content += "</div>"
