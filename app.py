@@ -790,6 +790,39 @@ def format_smart_num(num):
         )
 
 
+def clean_sales_value(val):
+    # Διαβάζει την αξία πωλήσεων όπως δίνεται στο αρχείο Excel.
+    if pd.isna(val):
+        return float("nan")
+    if isinstance(val, (int, float)):
+        return float(val)
+
+    value = (
+        str(val)
+        .replace("€", "")
+        .replace("\u00a0", "")
+        .replace(" ", "")
+        .strip()
+    )
+    if not value:
+        return float("nan")
+    if "," in value and "." in value:
+        value = value.replace(".", "").replace(",", ".")
+    elif "," in value:
+        value = value.replace(",", ".")
+    elif value.count(".") == 1 and len(value.rsplit(".", 1)[1]) == 3:
+        value = value.replace(".", "")
+    try:
+        return float(value)
+    except ValueError:
+        return float("nan")
+
+
+def format_sales_euros(value):
+    number = f"{value:,.2f}"
+    return number.replace(",", "_").replace(".", ",").replace("_", ".") + " €"
+
+
 # ==================================================
 # ΚΑΝΟΝΙΚΟΠΟΙΗΣΗ ΚΕΙΜΕΝΟΥ
 # ΒΓΑΖΕΙ ΤΟΝΟΥΣ / ΠΕΖΑ-ΚΕΦΑΛΑΙΑ
@@ -1055,25 +1088,41 @@ def process_sales_df(
             1.0
         )
 
+    # Εντοπίζουμε μόνο τη συνολική αξία πωλήσεων (όχι τιμή μονάδας ή κόστος).
+    value_candidates = [
+        col for col in df.columns
+        if "αξια" in normalize_text(col)
+        and "μοναδ" not in normalize_text(col)
+        and "τιμη" not in normalize_text(col)
+        and "κοστ" not in normalize_text(col)
+    ]
+    value_col = next(
+        (col for col in value_candidates if normalize_text(col) == "αξια"),
+        None
+    )
+    if value_col is None:
+        value_col = next(
+            (col for col in value_candidates if "πωλησ" in normalize_text(col)),
+            None
+        )
+    if value_col is None and value_candidates:
+        value_col = value_candidates[0]
+
     # ==================================================
     # ΚΡΑΤΑΜΕ ΜΟΝΟ:
     # ΚΑΤΑΣΤΗΜΑ + ΠΟΣΟΤΗΤΑ
+    # (ΕΠΙΠΛΕΟΝ ΑΞΙΑ ΓΙΑ ΤΟ ΤΕΛΙΚΟ TOTAL)
     # ==================================================
 
     df_selected = (
-        df[
-            [
-                store_col,
-                quantity_col
-            ]
-        ]
+        df[[store_col, quantity_col] + ([value_col] if value_col is not None else [])]
         .copy()
     )
 
     df_selected.columns = [
         "Κατάστημα",
         "Ποσότητα"
-    ]
+    ] + (["Αξία"] if value_col is not None else [])
 
     df_selected = (
         df_selected
@@ -1135,6 +1184,13 @@ def process_sales_df(
         .apply(
             clean_quantity_value
         )
+    )
+
+    # Η αξία ακολουθεί ακριβώς τα ίδια καταστήματα/φίλτρα με την ποσότητα.
+    df_clean["Num_Value"] = (
+        df_clean["Αξία"].apply(clean_sales_value)
+        if value_col is not None
+        else float("nan")
     )
 
     # ==================================================
@@ -1569,6 +1625,16 @@ df_stores_2, total_sum_2 = (
     filter_dataframe(
         df_stores_2
     )
+)
+
+# Υπολογισμός της συνολικής αξίας στα ήδη φιλτραρισμένα καταστήματα.
+total_value_1 = (
+    df_stores_1["Num_Value"].sum(min_count=1)
+    if "Num_Value" in df_stores_1.columns else float("nan")
+)
+total_value_2 = (
+    df_stores_2["Num_Value"].sum(min_count=1)
+    if "Num_Value" in df_stores_2.columns else float("nan")
 )
 
 
@@ -2549,6 +2615,10 @@ try:
                 total_sum_1
             )
         )
+        formatted_value_1 = (
+            format_sales_euros(total_value_1)
+            if pd.notna(total_value_1) else "Μη διαθέσιμη"
+        )
 
 
         html_content += f"""
@@ -2571,6 +2641,9 @@ try:
                     <b>
                         {formatted_total_1} τμχ/κιλ
                     </b>
+                    <small style="display:block; color:#ffd166; font-size:12px; font-weight:700;">
+                        Αξία: {formatted_value_1}
+                    </small>
                 </span>
 
             </div>
@@ -2763,6 +2836,10 @@ try:
                 total_sum_2
             )
         )
+        formatted_value_2 = (
+            format_sales_euros(total_value_2)
+            if pd.notna(total_value_2) else "Μη διαθέσιμη"
+        )
 
 
         html_content += f"""
@@ -2785,6 +2862,9 @@ try:
                     <b>
                         {formatted_total_2} τμχ/κιλ
                     </b>
+                    <small style="display:block; color:#ffd166; font-size:12px; font-weight:700;">
+                        Αξία: {formatted_value_2}
+                    </small>
                 </span>
 
             </div>
@@ -3035,4 +3115,3 @@ except Exception as excel_error:
     st.caption(
         "XLSX error"
     )
-
