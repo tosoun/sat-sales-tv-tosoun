@@ -115,74 +115,97 @@ def load_product_count():
 active_product_count = load_product_count()
 
 
-def upload_to_github(
-    file_path,
-    repo_name,
-    token,
-    commit_message="Update sales file"
-):
+def upload_files_to_github(file_paths, repo_name, token):
+    """Αποθηκεύει όλα τα αρχεία με ΕΝΑ μόνο GitHub commit.
 
+    Επιστρέφει (success, explanatory_message). Δεν ενημερώνει ποτέ το
+    branch αν κάποιο ενδιάμεσο βήμα αποτύχει.
+    """
     if not token or not repo_name:
-        return False
+        return False, "Λείπουν οι ρυθμίσεις GitHub στο Streamlit Secrets."
+
+    base_url = f"https://api.github.com/repos/{repo_name}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+    }
+    branch = "main"
+
+    def call(method, endpoint, **kwargs):
+        response = requests.request(
+            method, f"{base_url}/{endpoint}", headers=headers,
+            timeout=(5, 12), **kwargs,
+        )
+        if not 200 <= response.status_code < 300:
+            raise RuntimeError(
+                f"GitHub API {endpoint}: HTTP {response.status_code}"
+            )
+        return response.json()
 
     try:
-
-        url = (
-            f"https://api.github.com/repos/"
-            f"{repo_name}/contents/{file_path}"
-        )
-
-        headers = {
-            "Authorization": f"token {token}",
-            "Accept": "application/vnd.github.v3+json",
+        # Παίρνουμε το ακριβές τρέχον commit του main.
+        branch_ref = call("GET", f"git/ref/heads/{branch}")
+        old_commit_sha = branch_ref["object"]["sha"]
+        old_commit = call("GET", f"git/commits/{old_commit_sha}")
+        old_tree_sha = old_commit["tree"]["sha"]
+        old_tree = call("GET", f"git/trees/{old_tree_sha}?recursive=1")
+        if old_tree.get("truncated"):
+            return False, "Το GitHub δεν επέστρεψε ολόκληρο το περιεχόμενο του repository."
+        old_files = {
+            item["path"]: item["sha"]
+            for item in old_tree.get("tree", [])
+            if item.get("type") == "blob"
         }
 
-        r = requests.get(
-            url,
-            headers=headers,
-            timeout=(4, 12),
+        updates = []
+        for filepath in file_paths:
+            with open(filepath, "rb") as source:
+                content = source.read()
+            repo_filepath = os.path.basename(filepath)
+            # Ο ίδιος τρόπος υπολογισμού SHA που χρησιμοποιεί το Git.
+            git_blob = (
+                b"blob " + str(len(content)).encode("ascii") + b"\0" + content
+            )
+            local_sha = hashlib.sha1(git_blob).hexdigest()
+            if old_files.get(repo_filepath) == local_sha:
+                continue
+            new_blob = call(
+                "POST", "git/blobs",
+                json={
+                    "content": base64.b64encode(content).decode("ascii"),
+                    "encoding": "base64",
+                },
+            )
+            updates.append({
+                "path": repo_filepath,
+                "mode": "100644",
+                "type": "blob",
+                "sha": new_blob["sha"],
+            })
+
+        if not updates:
+            return True, "Τα αρχεία είναι ήδη ενημερωμένα στο GitHub."
+
+        new_tree = call(
+            "POST", "git/trees",
+            json={"base_tree": old_tree_sha, "tree": updates},
         )
-
-        if r.status_code not in (200, 404):
-            return False
-        sha = r.json().get("sha") if r.status_code == 200 else None
-
-        if not os.path.exists(file_path):
-            return False
-        with open(file_path, "rb") as f:
-            content_bytes = f.read()
-
-        # Github stores the SHA-1 of the Git blob, not a plain file digest.
-        git_blob = b"blob " + str(len(content_bytes)).encode("ascii") + b"\0" + content_bytes
-        local_sha = hashlib.sha1(git_blob).hexdigest()
-        if sha == local_sha:
-            return True  # Nothing changed, so do not trigger another redeployment.
-
-        content_encoded = (
-            base64
-            .b64encode(content_bytes)
-            .decode("utf-8")
+        new_commit = call(
+            "POST", "git/commits",
+            json={
+                "message": "Update sales data and reporting metadata",
+                "tree": new_tree["sha"],
+                "parents": [old_commit_sha],
+            },
         )
-
-        data = {
-            "message": commit_message,
-            "content": content_encoded
-        }
-
-        if sha:
-            data["sha"] = sha
-
-        put_r = requests.put(
-            url,
-            headers=headers,
-            data=json.dumps(data),
-            timeout=(4, 12),
+        # Μία και μοναδική αλλαγή στο main => μία ενημέρωση Streamlit.
+        call(
+            "PATCH", f"git/refs/heads/{branch}",
+            json={"sha": new_commit["sha"], "force": False},
         )
-
-        return put_r.status_code in [200, 201]
-
-    except Exception:
-        return False
+        return True, "Τα στοιχεία συγχρονίστηκαν με μία ενημέρωση στο GitHub."
+    except (OSError, requests.RequestException, RuntimeError, KeyError, ValueError) as exc:
+        return False, str(exc)
 
 
 # ==================================================
@@ -704,83 +727,39 @@ with col_admin:
                         )
                     )
 
-                with open(
-                    excel_path_1,
-                    "wb"
-                ) as f:
+                files_for_sync = []
 
-                    f.write(
-                        uploaded_file_1
-                        .getbuffer()
-                    )
-
-                if gh_token and repo_name:
-
-                    github_sync_ok = upload_to_github(
-                        excel_path_1,
-                        repo_name,
-                        gh_token,
-                        "Auto-update sales file 1",
-                    ) and github_sync_ok
+                with open(excel_path_1, "wb") as f:
+                    f.write(uploaded_file_1.getbuffer())
+                files_for_sync.append(excel_path_1)
 
                 if selected_product_count == 2:
-                    with open(
-                        excel_path_2,
-                        "wb"
-                    ) as f:
-
-                        f.write(
-                            uploaded_file_2
-                            .getbuffer()
-                        )
-
-                    if gh_token and repo_name:
-
-                        github_sync_ok = upload_to_github(
-                            excel_path_2,
-                            repo_name,
-                            gh_token,
-                            "Auto-update sales file 2",
-                        ) and github_sync_ok
+                    with open(excel_path_2, "wb") as f:
+                        f.write(uploaded_file_2.getbuffer())
+                    files_for_sync.append(excel_path_2)
 
                 with open(product_count_path, "w", encoding="utf-8") as count_file:
                     count_file.write(str(selected_product_count))
                 active_product_count = selected_product_count
+                files_for_sync.extend([product_count_path, time_path, date_path])
 
                 if gh_token and repo_name:
-                    github_sync_ok = upload_to_github(
-                        product_count_path,
-                        repo_name,
-                        gh_token,
-                        "Update number of products",
-                    ) and github_sync_ok
-
-                if gh_token and repo_name:
-
-                    github_sync_ok = upload_to_github(
-                        time_path,
-                        repo_name,
-                        gh_token,
-                        "Auto-update upload time",
-                    ) and github_sync_ok
-
-                    github_sync_ok = upload_to_github(
-                        date_path,
-                        repo_name,
-                        gh_token,
-                        "Auto-update upload date",
-                    ) and github_sync_ok
+                    github_sync_ok, sync_message = upload_files_to_github(
+                        files_for_sync, repo_name, gh_token
+                    )
+                else:
+                    github_sync_ok = False
+                    sync_message = "Δεν έχει ρυθμιστεί το GitHub στο Streamlit Secrets."
 
                 st.session_state[
                     "last_uploaded_sig"
                 ] = upload_signature
 
                 sync_status.empty()
-                if gh_token and repo_name and not github_sync_ok:
+                if not github_sync_ok:
                     st.warning(
-                        "Το Excel αποθηκεύτηκε στην εφαρμογή, αλλά μία ή "
-                        "περισσότερες ενημερώσεις στο GitHub απέτυχαν. "
-                        "Ελέγξτε τη σύνδεση και το ιστορικό του GitHub."
+                        "Το Excel αποθηκεύτηκε προσωρινά, αλλά ο συγχρονισμός "
+                        f"δεν ολοκληρώθηκε: {sync_message}"
                     )
                 elif selected_product_count == 1:
                     st.success(
