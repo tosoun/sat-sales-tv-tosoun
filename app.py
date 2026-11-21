@@ -555,7 +555,7 @@ with col_admin:
                     let audio = doc.getElementById(AUDIO_ID);
                     if (audio) return audio;
                     // Η πραγματική MP3 URL παρέχεται από το st.audio εκτός Admin.
-                    const source = doc.querySelector('[data-testid="stAudio"] audio');
+                    const source = doc.querySelector('audio[data-testid="stAudio"], [data-testid="stAudio"] audio, audio.stAudio');
                     const rawUrl = source && (
                       source.currentSrc || source.src ||
                       source.querySelector('source')?.src
