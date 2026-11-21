@@ -302,6 +302,30 @@ def validate_uploaded_sales_file(file_bytes, display_name):
         raise ValueError(f"{display_name}: {exc}") from exc
 
 
+# ==================================================
+# ΜΟΝΙΜΗ ΠΗΓΗ ΗΧΟΥ (εκτός του διαχειριστικού)
+# Ο player υπάρχει στην κύρια σελίδα ακόμη κι όταν κλείνει το Admin.
+# Ο επισκέπτης δεν βλέπει κουμπιά μουσικής.
+# ==================================================
+background_music_file = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "background_music.mp3"
+)
+background_music_available = os.path.isfile(background_music_file)
+if background_music_available:
+    st.markdown(
+        """<style>
+        /* Κρύβουμε μόνο το σταθερό στοιχείο ήχου του Streamlit.
+           Ο ήχος παραμένει διαθέσιμος για τον admin player. */
+        [data-testid="stAudio"] { position: absolute !important;
+            width: 1px !important; height: 1px !important;
+            opacity: 0 !important; pointer-events: none !important;
+            overflow: hidden !important; }
+        </style>""",
+        unsafe_allow_html=True,
+    )
+    st.audio(background_music_file, format="audio/mpeg", loop=True, autoplay=False)
+
+
 col_admin, col_input_space = st.columns([4, 4])
 
 
@@ -484,37 +508,126 @@ with col_admin:
                 )
 
             # ==================================================
-            # ΜΟΥΣΙΚΗ — ΕΓΓΕΝΗΣ PLAYER STREAMLIT
-            # Μόνο μέσα στο Admin. Ο browser ξεκινά τον ήχο μετά
-            # από πραγματικό πάτημα Play, όχι με autoplay/JavaScript.
+            # ΜΟΥΣΙΚΗ — ΧΕΙΡΙΣΤΗΡΙΑ ΜΟΝΟ ΣΤΟ ADMIN
+            # Το αρχείο και ο μόνιμος player είναι ΕΚΤΟΣ του expander.
+            # Έτσι το κλείσιμο του διαχειριστικού δεν σταματά τον ήχο.
             # ==================================================
             st.markdown("---")
             st.markdown("🎵 **Μουσική υπόκρουση**")
-
-            admin_music_file = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                "background_music.mp3",
-            )
-            if os.path.isfile(admin_music_file):
-                # Διαβάζουμε από ΤΟ ΤΟΠΙΚΟ αρχείο που υπάρχει στο GitHub
-                # (όχι από raw.githubusercontent.com ή εξωτερικό iframe).
-                st.audio(
-                    admin_music_file,
-                    format="audio/mpeg",
-                    loop=True,
-                    autoplay=False,
-                )
-                st.caption(
-                    "▶ Παίξε / ⏸ Σταμάτησε μέσα από το χειριστήριο. "
-                    "Η ένταση ρυθμίζεται από το εικονίδιο ήχου του player "
-                    "ή από τα πλήκτρα έντασης του κινητού. "
-                    "Μετά από πλήρη ανανέωση μπορεί να χρειαστεί ξανά Play."
-                )
+            if background_music_available:
+                admin_music_controls = r"""
+                <!doctype html><html lang="el"><head><meta charset="utf-8">
+                <style>
+                  body { margin: 0; color: #e6edf3; background: transparent;
+                    font-family: sans-serif; font-size: 13px; }
+                  .controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+                  button { cursor:pointer; border:0; border-radius:7px;
+                    padding:8px 17px; font-weight:700; font-size:14px; }
+                  #play { background:#178650; color:white; }
+                  #stop { background:#f1f1f1; color:#111; }
+                  label { display:flex; align-items:center; gap:9px; }
+                  input[type=range] { width:135px; accent-color:#178650; }
+                  #state { margin: 12px 0 0; color: #cbd5e1; font-size:12px; }
+                </style></head><body>
+                <div class="controls">
+                  <button id="play" type="button">▶ ON</button>
+                  <button id="stop" type="button">■ OFF</button>
+                  <label>🔊 Ένταση
+                    <input id="volume" type="range" min="0" max="100"
+                      value="25" step="5"/>
+                    <span id="volumeLabel">25%</span>
+                  </label>
+                </div>
+                <p id="state" role="status">Πάτησε ON για να ξεκινήσει η μουσική.</p>
+                <script>
+                (() => {
+                  const status = document.getElementById('state');
+                  const slider = document.getElementById('volume');
+                  const readout = document.getElementById('volumeLabel');
+                  const AUDIO_ID = 'sales-background-audio-persistent';
+                  let topDocument = null;
+                  function findAudio() {
+                    // Αν υπάρχει ήδη ανεξάρτητος player, τον χρησιμοποιούμε ξανά.
+                    // Το Streamlit δεν ελέγχει αυτόν τον κόμβο και δεν τον αφαιρεί
+                    // όταν ανανεώνονται τα Excel ή κλείνει το Admin.
+                    const doc = window.parent.document;
+                    topDocument = doc;
+                    let audio = doc.getElementById(AUDIO_ID);
+                    if (audio) return audio;
+                    // Η πραγματική MP3 URL παρέχεται από το st.audio εκτός Admin.
+                    const source = doc.querySelector('[data-testid="stAudio"] audio');
+                    const rawUrl = source && (
+                      source.currentSrc || source.src ||
+                      source.querySelector('source')?.src
+                    );
+                    if (!rawUrl) throw new Error('Δεν βρέθηκε η πηγή MP3 στην οθόνη.');
+                    audio = doc.createElement('audio');
+                    audio.id = AUDIO_ID;
+                    audio.src = rawUrl;
+                    audio.loop = true;
+                    audio.preload = 'auto';
+                    audio.style.display = 'none';
+                    audio.volume = Number(slider.value) / 100;
+                    doc.body.appendChild(audio);
+                    return audio;
+                  }
+                  function syncState() {
+                    try {
+                      const a = window.parent.document.getElementById(AUDIO_ID);
+                      if (!a) return;
+                      slider.value = String(Math.round(a.volume * 100));
+                      readout.textContent = slider.value + '%';
+                      status.textContent = a.paused ? 'Η μουσική είναι σταματημένη.' :
+                        'Η μουσική παίζει και συνεχίζει με κλειστό το Admin.';
+                    } catch (_) {
+                      status.textContent = 'Ο browser εμποδίζει τον έλεγχο του player.';
+                    }
+                  }
+                  syncState();
+                  document.getElementById('play').addEventListener('click', () => {
+                    try {
+                      const a = findAudio();
+                      a.muted = false;
+                      a.volume = Number(slider.value) / 100;
+                      // Το play() εκτελείται στο ίδιο click, όχι μέσω Python rerun.
+                      const result = a.play();
+                      if (result && typeof result.then === 'function') {
+                        result.then(() => {
+                          status.textContent =
+                            'Η μουσική παίζει και συνεχίζει με κλειστό το Admin.';
+                        }).catch(e => {
+                          status.textContent = 'Η αναπαραγωγή μπλοκαρίστηκε: ' + e.name;
+                        });
+                      } else {
+                        status.textContent = 'Η μουσική ξεκίνησε.';
+                      }
+                    } catch (e) {
+                      status.textContent = 'Δεν ξεκίνησε η μουσική: ' + e.message;
+                    }
+                  });
+                  document.getElementById('stop').addEventListener('click', () => {
+                    try {
+                      const a = window.parent.document.getElementById(AUDIO_ID);
+                      if (a) { a.pause(); a.currentTime = 0; }
+                      status.textContent = 'Η μουσική σταμάτησε.';
+                    } catch (e) {
+                      status.textContent = 'Δεν ήταν δυνατό το OFF: ' + e.message;
+                    }
+                  });
+                  slider.addEventListener('input', () => {
+                    readout.textContent = slider.value + '%';
+                    try {
+                      const a = window.parent.document.getElementById(AUDIO_ID);
+                      if (a) a.volume = Number(slider.value) / 100;
+                    } catch (_) { /* Ενημέρωση έντασης όταν ξεκινήσει το ON. */ }
+                  });
+                })();
+                </script></body></html>
+                """
+                components.html(admin_music_controls, height=100, scrolling=False)
+                st.caption("ON μία φορά μέσα από το Admin. Σε πλήρη ανανέωση της σελίδας μπορεί να χρειαστεί ξανά ON.")
             else:
-                st.error(
-                    "Δεν βρέθηκε το background_music.mp3 "
-                    "στον ίδιο φάκελο με το app.py."
-                )
+                st.error("Δεν βρέθηκε το background_music.mp3 δίπλα στο app.py.")
 
 
             # Δεν γράφουμε Excel αν λείπουν οι αναγκαίες στήλες.
