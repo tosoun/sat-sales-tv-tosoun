@@ -337,7 +337,7 @@ if background_music_available:
             const ENABLE_KEY = 'sales-music-enabled-v3';
             const VOLUME_KEY = 'sales-music-volume-v3';
             const existing = host.__salesBackgroundMusic;
-            if (existing && existing.version === 'tap-v3') return;
+            if (existing && existing.version === 'tap-v4-volume') return;
 
             const read = (key, fallback) => {
               try { return host.localStorage.getItem(key) ?? fallback; }
@@ -350,6 +350,49 @@ if background_music_available:
             let enabled = read(ENABLE_KEY, 'on') !== 'off';
             let volume = Math.max(0, Math.min(100,
               Number(read(VOLUME_KEY, '25')) || 0));
+
+            // Η ιδιότητα audio.volume αγνοείται από ορισμένους browsers κινητών
+            // (κυρίως iPhone). Για αυτό ρυθμίζουμε την πραγματική στάθμη με
+            // Web Audio GainNode, αφήνοντας εναλλακτικά το audio.volume.
+            let volumeAudioContext = null;
+            let volumeGain = null;
+            let gainPlayer = null;
+
+            function applyVolume(player) {
+              if (!player) return;
+              if (volumeGain && gainPlayer === player) {
+                // Ένταση 0-100% και σε browsers που αγνοούν το audio.volume.
+                player.volume = 1;
+                volumeGain.gain.value = volume / 100;
+              } else {
+                player.volume = volume / 100;
+              }
+            }
+
+            function setupMobileVolume(player) {
+              if (!player || (volumeGain && gainPlayer === player)) return;
+              const AudioContextClass = host.AudioContext || host.webkitAudioContext;
+              if (!AudioContextClass) return;
+              try {
+                // Αποφεύγουμε να δρομολογήσουμε cross-origin ήχο χωρίς CORS,
+                // γιατί τότε το Web Audio μπορεί να τον κάνει αθόρυβο.
+                const mediaURL = new URL(player.src, doc.baseURI);
+                if (!['blob:', 'data:'].includes(mediaURL.protocol) &&
+                    mediaURL.origin !== doc.location.origin) return;
+                const ctx = new AudioContextClass();
+                const source = ctx.createMediaElementSource(player);
+                const gain = ctx.createGain();
+                source.connect(gain);
+                gain.connect(ctx.destination);
+                volumeAudioContext = ctx;
+                volumeGain = gain;
+                gainPlayer = player;
+                applyVolume(player);
+              } catch (error) {
+                // Κρατάμε τον αρχικό player αν δεν διατίθεται Web Audio.
+                console.warn('Music volume fallback:', error);
+              }
+            }
 
             function findPlayer() {
               let player = doc.getElementById(ID);
@@ -377,7 +420,15 @@ if background_music_available:
               if (!player) return false;
               player.loop = true;
               player.muted = false;
-              player.volume = volume / 100;
+              setupMobileVolume(player);
+              applyVolume(player);
+              // Το AudioContext ξυπνά από αληθινό άγγιγμα/κλικ.
+              if (volumeAudioContext && volumeAudioContext.state !== 'running') {
+                try {
+                  const resumed = volumeAudioContext.resume();
+                  if (resumed?.catch) resumed.catch(() => {});
+                } catch (_) { /* Η αναπαραγωγή μπορεί να συνεχίσει κανονικά. */ }
+              }
               if (player.paused) {
                 try {
                   const promise = player.play(); // Απευθείας μέσα στο click/touch.
@@ -388,7 +439,7 @@ if background_music_available:
             }
 
             const controller = {
-              version: 'tap-v3',
+              version: 'tap-v4-volume',
               attemptPlayOnGesture,
               enable() {
                 enabled = true;
@@ -405,7 +456,7 @@ if background_music_available:
                 volume = Math.max(0, Math.min(100, Number(v) || 0));
                 save(VOLUME_KEY, volume);
                 const player = doc.getElementById(ID);
-                if (player) player.volume = volume / 100;
+                if (player) applyVolume(player);
               },
               state() {
                 const player = doc.getElementById(ID);
