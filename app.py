@@ -552,6 +552,22 @@ with col_admin:
                           audio.volume = Number(slider.value) / 100;
                           parentDoc.body.appendChild(audio);
                         }
+                        // Αν το Streamlit ανανεώσει το DOM, επανασύνδεση.
+                        if (!audio.isConnected) parentDoc.body.appendChild(audio);
+                        // Αν υπάρχει player από παλαιότερη έκδοση κώδικα,
+                        // ελέγχουμε ότι δείχνει στο σωστό MP3.
+                        const newUrl = '__MUSIC_DATA__';
+                        if (audio.src !== newUrl) {
+                          const wasPlaying = !audio.paused;
+                          audio.pause();
+                          audio.src = newUrl;
+                          audio.load();
+                          // Δεν επιχειρούμε autoplay: απαιτείται κλικ ON.
+                          if (wasPlaying) {
+                            status.textContent = 'Πάτησε ON για επανεκκίνηση του ήχου.';
+                          }
+                        }
+                        audio.muted = false;
                         isPersistent = true;
                       } catch (err) {
                         // Fallback σε browsers που απομονώνουν τα iframes.
@@ -580,6 +596,9 @@ with col_admin:
 
                       document.getElementById('start').addEventListener('click', async () => {
                         try {
+                          audio.muted = false;
+                          audio.volume = Number(slider.value) / 100;
+                          if (audio.error) audio.load();
                           await audio.play();
                           status.textContent = isPersistent
                             ? 'Η μουσική παίζει και συνεχίζει στην ενημέρωση των πωλήσεων.'
@@ -820,6 +839,17 @@ with col_admin:
                         f"{upload_sales_checks[1][0]} γραμμές καταστημάτων. "
                         "Οι πωλήσεις ανανεώθηκαν στην παρούσα συνεδρία."
                     )
+
+                # Επιστροφή στην οθόνη πωλήσεων ΜΟΝΟ στο πρώτο
+                # upload νέου περιεχομένου (όχι σε κάθε Streamlit rerun).
+                import hashlib
+                upload_content_id = hashlib.sha256(
+                    bytes_1 + b"\x00" + (bytes_2 or b"") +
+                    str(selected_product_count).encode("ascii")
+                ).hexdigest()
+                if st.session_state.get("_last_dashboard_upload") != upload_content_id:
+                    st.session_state["_last_dashboard_upload"] = upload_content_id
+                    st.session_state["_return_to_dashboard_once"] = True
 
 
         elif password:
@@ -3371,6 +3401,9 @@ try:
     """
 
 
+    # Αόρατος στόχος για επιστροφή στο banner μετά την καταχώρηση.
+    st.markdown('<div id="sales-display-anchor"></div>', unsafe_allow_html=True)
+
     components.html(
         html_content,
         height=1200,
@@ -3416,4 +3449,36 @@ except Exception as excel_error:
 
     st.caption(
         "XLSX error"
+    )
+
+
+# ==================================================
+# ΕΠΙΣΤΡΟΦΗ ΣΤΗΝ ΠΑΡΟΥΣΙΑΣΗ ΜΕΤΑ ΤΟ UPLOAD
+# Δεν γίνεται πλήρης ανανέωση, ώστε να μη διακόπτεται ο ήχος.
+# ==================================================
+if st.session_state.pop("_return_to_dashboard_once", False):
+    components.html(
+        """
+        <script>
+        (() => {
+          const goBack = () => {
+            try {
+              const doc = window.parent.document;
+              const admin = Array.from(doc.querySelectorAll('details'))
+                .find(el => (el.querySelector('summary')?.textContent || '')
+                  .includes('Διαχείριση Αρχείων'));
+              if (admin && admin.open) admin.querySelector('summary')?.click();
+              setTimeout(() => {
+                const banner = doc.getElementById('sales-display-anchor');
+                banner?.scrollIntoView({behavior: 'smooth', block: 'start'});
+              }, 350);
+            } catch (err) {
+              /* Δεν επηρεάζουμε ποτέ την καταχώρηση Excel. */
+            }
+          };
+          setTimeout(goBack, 450);
+        })();
+        </script>
+        """,
+        height=0,
     )
