@@ -456,56 +456,94 @@ with col_admin:
                     key="cheer_radio",
                 )
 
-            # Η μουσική ελέγχεται ΜΟΝΟ από το διαχειριστικό.
-            # Δεν εμφανίζεται χειριστήριο στη δημόσια οθόνη.
+            # Η μουσική ελέγχεται αποκλειστικά από το Admin.
+            # Το πάτημα ON γίνεται ΜΕΣΑ στο audio iframe, ώστε να επιτρέπεται
+            # η αναπαραγωγή από τους browsers που μπλοκάρουν το autoplay.
             st.markdown("---")
             st.markdown("🎵 **Μουσική υπόκρουση**")
 
-            admin_music_enabled = st.radio(
-                "Μουσική:",
-                options=["OFF", "ON"],
-                index=1 if music_settings["enabled"] else 0,
-                horizontal=True,
-                key="admin_music_enabled",
+            admin_music_file = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "background_music.mp3",
             )
+            if os.path.isfile(admin_music_file):
+                with open(admin_music_file, "rb") as music_source:
+                    admin_music_base64 = base64.b64encode(
+                        music_source.read()
+                    ).decode("ascii")
 
-            admin_music_volume = st.slider(
-                "Ένταση μουσικής (%)",
-                min_value=0,
-                max_value=100,
-                value=music_settings["volume"],
-                step=5,
-                key="admin_music_volume",
-            )
+                admin_player_html = r"""
+                <!doctype html>
+                <html lang="el">
+                <head>
+                    <meta charset="utf-8">
+                    <style>
+                        body { margin: 0; font: 14px sans-serif; color: #222; }
+                        .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+                        button { cursor: pointer; border-radius: 6px; padding: 7px 15px;
+                                 font-size: 14px; font-weight: bold; border: 1px solid #aaa; }
+                        #start { background: #157347; border-color: #157347; color: #fff; }
+                        #stop { background: #f5f5f5; }
+                        label { display: flex; align-items: center; gap: 8px; }
+                        input[type=range] { width: 125px; accent-color: #157347; }
+                        #state { margin: 12px 0 0; font-size: 12px; color: #555; }
+                    </style>
+                </head>
+                <body>
+                    <div class="controls">
+                        <button id="start" type="button">▶ ON</button>
+                        <button id="stop" type="button">■ OFF</button>
+                        <label for="volume">🔊 Ένταση
+                            <input id="volume" type="range" min="0" max="100"
+                                   step="5" value="__INITIAL_VOLUME__">
+                            <span id="percentage">__INITIAL_VOLUME__%</span>
+                        </label>
+                    </div>
+                    <p id="state" role="status">Η μουσική είναι κλειστή. Πάτησε ON.</p>
+                    <audio id="music" loop preload="auto" src="__MUSIC_DATA__"></audio>
+                    <script>
+                      const audio = document.getElementById('music');
+                      const status = document.getElementById('state');
+                      const slider = document.getElementById('volume');
+                      const percentage = document.getElementById('percentage');
+                      audio.volume = Number(slider.value) / 100;
 
-            if st.button("💾 Αποθήκευση μουσικής", key="save_music_settings"):
-                music_settings = {
-                    "enabled": admin_music_enabled == "ON",
-                    "volume": admin_music_volume,
-                }
-                with open(music_settings_path, "w", encoding="utf-8") as music_conf:
-                    json.dump(music_settings, music_conf, ensure_ascii=False)
+                      slider.addEventListener('input', () => {
+                        audio.volume = Number(slider.value) / 100;
+                        percentage.textContent = slider.value + '%';
+                      });
 
-                # Ίδιος μηχανισμός GitHub με την υπάρχουσα αποστολή Excel.
-                try:
-                    music_gh_token = st.secrets.get("GITHUB_TOKEN")
-                    music_repo_name = st.secrets.get("REPO_NAME")
-                except Exception:
-                    music_gh_token = None
-                    music_repo_name = None
+                      // Το play() καλείται απευθείας από πάτημα του χρήστη στο ίδιο iframe.
+                      document.getElementById('start').addEventListener('click', async () => {
+                        try {
+                          await audio.play();
+                          status.textContent = 'Η μουσική παίζει.';
+                        } catch (err) {
+                          status.textContent = 'Ο browser μπλόκαρε τον ήχο: ' + err.name;
+                        }
+                      });
 
-                if music_gh_token and music_repo_name:
-                    if upload_to_github(
-                        music_settings_path,
-                        music_repo_name,
-                        music_gh_token,
-                        "Update music settings",
-                    ):
-                        st.success("Οι ρυθμίσεις μουσικής αποθηκεύτηκαν.")
-                    else:
-                        st.warning("Οι ρυθμίσεις ισχύουν προσωρινά στον server, αλλά δεν αποθηκεύτηκαν στο GitHub.")
-                else:
-                    st.warning("Οι ρυθμίσεις αποθηκεύτηκαν στον server, αλλά μπορεί να χαθούν σε επανεκκίνηση (δεν υπάρχει σύνδεση GitHub).")
+                      document.getElementById('stop').addEventListener('click', () => {
+                        audio.pause();
+                        audio.currentTime = 0;
+                        status.textContent = 'Η μουσική σταμάτησε.';
+                      });
+
+                      audio.addEventListener('error', () => {
+                        status.textContent = 'Δεν μπορεί να φορτωθεί το MP3.';
+                      });
+                    </script>
+                </body>
+                </html>
+                """.replace(
+                    "__INITIAL_VOLUME__", str(music_settings["volume"])
+                ).replace(
+                    "__MUSIC_DATA__", "data:audio/mpeg;base64," + admin_music_base64
+                )
+                components.html(admin_player_html, height=105, scrolling=False)
+                st.caption("Η μουσική ξεκινά με πάτημα ON εδώ στο Admin. Αν ανανεωθεί η σελίδα, πάτησε ξανά ON.")
+            else:
+                st.warning("Δεν βρέθηκε το background_music.mp3 δίπλα στο app.py.")
 
             if (
                 uploaded_file_1 is not None
@@ -2007,63 +2045,9 @@ if banner_files:
     except OSError:
         img_src = ""
 
-# ==================================================
-# ΠΡΟΑΙΡΕΤΙΚΗ ΜΟΥΣΙΚΗ ΥΠΟΚΡΟΥΣΗ - ON/OFF & ΕΝΤΑΣΗ
-# Τοποθετούμε το background_music.mp3 δίπλα στο app.py.
-# ==================================================
-
+# Η αναπαραγωγή έγινε μέρος του Admin για να εκκινεί με κανονικό κλικ.
+# Δεν εμφανίζουμε ήχο ή χειριστήρια στη δημόσια οθόνη πωλήσεων.
 music_player_html = ""
-music_file = os.path.join(app_dir, "background_music.mp3")
-
-if os.path.isfile(music_file):
-    try:
-        with open(music_file, "rb") as music_stream:
-            music_base64 = base64.b64encode(music_stream.read()).decode("ascii")
-
-        # Μόνο ήχος στη δημόσια οθόνη, ΧΩΡΙΣ κουμπιά / slider / λωρίδα.
-        # Το ON/OFF και η ένταση ορίζονται αποκλειστικά από το Admin.
-        music_player_html = """
-        <audio id="backgroundMusic" preload="auto" loop hidden
-               src="__MUSIC_DATA__"></audio>
-        <script>
-        (function () {
-            const audio = document.getElementById('backgroundMusic');
-            if (!audio) return;
-            const enabled = __MUSIC_ENABLED__;
-            const volume = __MUSIC_VOLUME__;
-            audio.volume = volume / 100;
-            if (!enabled) return;
-
-            function tryPlay() {
-                if (!audio.paused) return;
-                const result = audio.play();
-                if (result && typeof result.catch === 'function') {
-                    result.catch(function () {
-                        // Ο browser ενδέχεται να απαιτεί πρώτα ενέργεια χρήστη.
-                    });
-                }
-            }
-
-            // Προσπάθεια αυτόματης έναρξης όπου το επιτρέπει ο browser.
-            tryPlay();
-            // Εάν ο browser μπλοκάρει το autoplay, ξαναδοκιμάζουμε σε κλικ.
-            document.addEventListener('pointerdown', tryPlay, true);
-            document.addEventListener('keydown', tryPlay, true);
-            try {
-                // Για αλληλεπιδράσεις στα Streamlit controls, εκτός iframe.
-                window.parent.document.addEventListener('pointerdown', tryPlay, true);
-                window.parent.document.addEventListener('keydown', tryPlay, true);
-            } catch (err) {
-                // Σε cross-origin περιορισμούς δεν υπάρχει πρόσβαση στο parent.
-            }
-        })();
-        </script>
-        """.replace("__MUSIC_DATA__", "data:audio/mpeg;base64," + music_base64)
-        music_player_html = music_player_html.replace(
-            "__MUSIC_ENABLED__", "true" if music_settings["enabled"] else "false"
-        ).replace("__MUSIC_VOLUME__", str(music_settings["volume"]))
-    except OSError:
-        music_player_html = ""
 
 # ==================================================
 # HTML
