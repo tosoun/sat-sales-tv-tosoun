@@ -1,7 +1,6 @@
 import base64
 import datetime
 import glob
-import hashlib
 import html
 import json
 import os
@@ -81,24 +80,6 @@ date_path = "upload_date.txt"
 confetti_path = "confetti_status.txt"
 cheer_path = "cheer_status.txt"
 product_count_path = "product_count.txt"
-music_settings_path = "music_settings.json"
-
-
-def load_music_settings():
-    """Ρυθμίσεις μουσικής μόνο από το Admin (χωρίς ορατά χειριστήρια)."""
-    defaults = {"enabled": False, "volume": 25}
-    try:
-        with open(music_settings_path, "r", encoding="utf-8") as music_conf:
-            saved = json.load(music_conf)
-        return {
-            "enabled": saved.get("enabled") is True,
-            "volume": max(0, min(100, int(saved.get("volume", 25)))),
-        }
-    except (OSError, ValueError, TypeError, AttributeError):
-        return defaults
-
-
-music_settings = load_music_settings()
 
 # Η τελευταία επιλογή (1 ή 2 προϊόντα) διατηρείται για όλους τους επισκέπτες.
 def load_product_count():
@@ -115,97 +96,68 @@ def load_product_count():
 active_product_count = load_product_count()
 
 
-def upload_files_to_github(file_paths, repo_name, token):
-    """Αποθηκεύει όλα τα αρχεία με ΕΝΑ μόνο GitHub commit.
+def upload_to_github(
+    file_path,
+    repo_name,
+    token,
+    commit_message="Update sales file"
+):
 
-    Επιστρέφει (success, explanatory_message). Δεν ενημερώνει ποτέ το
-    branch αν κάποιο ενδιάμεσο βήμα αποτύχει.
-    """
     if not token or not repo_name:
-        return False, "Λείπουν οι ρυθμίσεις GitHub στο Streamlit Secrets."
-
-    base_url = f"https://api.github.com/repos/{repo_name}"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github+json",
-    }
-    branch = "main"
-
-    def call(method, endpoint, **kwargs):
-        response = requests.request(
-            method, f"{base_url}/{endpoint}", headers=headers,
-            timeout=(5, 12), **kwargs,
-        )
-        if not 200 <= response.status_code < 300:
-            raise RuntimeError(
-                f"GitHub API {endpoint}: HTTP {response.status_code}"
-            )
-        return response.json()
+        return False
 
     try:
-        # Παίρνουμε το ακριβές τρέχον commit του main.
-        branch_ref = call("GET", f"git/ref/heads/{branch}")
-        old_commit_sha = branch_ref["object"]["sha"]
-        old_commit = call("GET", f"git/commits/{old_commit_sha}")
-        old_tree_sha = old_commit["tree"]["sha"]
-        old_tree = call("GET", f"git/trees/{old_tree_sha}?recursive=1")
-        if old_tree.get("truncated"):
-            return False, "Το GitHub δεν επέστρεψε ολόκληρο το περιεχόμενο του repository."
-        old_files = {
-            item["path"]: item["sha"]
-            for item in old_tree.get("tree", [])
-            if item.get("type") == "blob"
+
+        url = (
+            f"https://api.github.com/repos/"
+            f"{repo_name}/contents/{file_path}"
+        )
+
+        headers = {
+            "Authorization": f"token {token}",
+            "Accept": "application/vnd.github.v3+json",
         }
 
-        updates = []
-        for filepath in file_paths:
-            with open(filepath, "rb") as source:
-                content = source.read()
-            repo_filepath = os.path.basename(filepath)
-            # Ο ίδιος τρόπος υπολογισμού SHA που χρησιμοποιεί το Git.
-            git_blob = (
-                b"blob " + str(len(content)).encode("ascii") + b"\0" + content
-            )
-            local_sha = hashlib.sha1(git_blob).hexdigest()
-            if old_files.get(repo_filepath) == local_sha:
-                continue
-            new_blob = call(
-                "POST", "git/blobs",
-                json={
-                    "content": base64.b64encode(content).decode("ascii"),
-                    "encoding": "base64",
-                },
-            )
-            updates.append({
-                "path": repo_filepath,
-                "mode": "100644",
-                "type": "blob",
-                "sha": new_blob["sha"],
-            })
+        r = requests.get(
+            url,
+            headers=headers
+        )
 
-        if not updates:
-            return True, "Τα αρχεία είναι ήδη ενημερωμένα στο GitHub."
+        sha = None
 
-        new_tree = call(
-            "POST", "git/trees",
-            json={"base_tree": old_tree_sha, "tree": updates},
+        if r.status_code == 200:
+            sha = r.json().get("sha")
+
+        if not os.path.exists(file_path):
+            return False
+
+        with open(file_path, "rb") as f:
+            content_bytes = f.read()
+
+        content_encoded = (
+            base64
+            .b64encode(content_bytes)
+            .decode("utf-8")
         )
-        new_commit = call(
-            "POST", "git/commits",
-            json={
-                "message": "Update sales data and reporting metadata",
-                "tree": new_tree["sha"],
-                "parents": [old_commit_sha],
-            },
+
+        data = {
+            "message": commit_message,
+            "content": content_encoded
+        }
+
+        if sha:
+            data["sha"] = sha
+
+        put_r = requests.put(
+            url,
+            headers=headers,
+            data=json.dumps(data)
         )
-        # Μία και μοναδική αλλαγή στο main => μία ενημέρωση Streamlit.
-        call(
-            "PATCH", f"git/refs/heads/{branch}",
-            json={"sha": new_commit["sha"], "force": False},
-        )
-        return True, "Τα στοιχεία συγχρονίστηκαν με μία ενημέρωση στο GitHub."
-    except (OSError, requests.RequestException, RuntimeError, KeyError, ValueError) as exc:
-        return False, str(exc)
+
+        return put_r.status_code in [200, 201]
+
+    except Exception:
+        return False
 
 
 # ==================================================
@@ -486,157 +438,24 @@ with col_admin:
                     key="cheer_radio",
                 )
 
-            # Η μουσική ελέγχεται αποκλειστικά από το Admin.
-            # Το πάτημα ON γίνεται ΜΕΣΑ στο audio iframe, ώστε να επιτρέπεται
-            # η αναπαραγωγή από τους browsers που μπλοκάρουν το autoplay.
-            st.markdown("---")
-            st.markdown("🎵 **Μουσική υπόκρουση**")
-
-            admin_music_file = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                "background_music.mp3",
-            )
-            if os.path.isfile(admin_music_file):
-                # Stream the publicly uploaded MP3 instead of embedding its
-                # bytes in the dashboard every time the Excel widget reruns.
-                admin_music_url = (
-                    "https://raw.githubusercontent.com/"
-                    "tosoun/sat-sales-tv-tosoun/main/background_music.mp3"
+            if (
+                uploaded_file_1 is not None
+                and (
+                    selected_product_count == 1
+                    or uploaded_file_2 is not None
                 )
+            ):
 
-                admin_player_html = r"""
-                <!doctype html>
-                <html lang="el">
-                <head>
-                    <meta charset="utf-8">
-                    <style>
-                        body { margin: 0; font: 14px sans-serif; color: #222; }
-                        .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-                        button { cursor: pointer; border-radius: 6px; padding: 7px 15px;
-                                 font-size: 14px; font-weight: bold; border: 1px solid #aaa; }
-                        #start { background: #157347; border-color: #157347; color: #fff; }
-                        #stop { background: #f5f5f5; }
-                        label { display: flex; align-items: center; gap: 8px; }
-                        input[type=range] { width: 125px; accent-color: #157347; }
-                        #state { margin: 12px 0 0; font-size: 12px; color: #555; }
-                    </style>
-                </head>
-                <body>
-                    <div class="controls">
-                        <button id="start" type="button">▶ ON</button>
-                        <button id="stop" type="button">■ OFF</button>
-                        <label for="volume">🔊 Ένταση
-                            <input id="volume" type="range" min="0" max="100"
-                                   step="5" value="__INITIAL_VOLUME__">
-                            <span id="percentage">__INITIAL_VOLUME__%</span>
-                        </label>
-                    </div>
-                    <p id="state" role="status">Η μουσική είναι κλειστή. Πάτησε ON.</p>
-                    <script>
-                      // Ο ήχος συνδέεται στο κύριο παράθυρο του Streamlit,
-                      // όχι στο iframe που αναδημιουργείται σε κάθε rerun.
-                      const status = document.getElementById('state');
-                      const slider = document.getElementById('volume');
-                      const percentage = document.getElementById('percentage');
-                      const AUDIO_ID = 'sat-sales-persistent-music';
-                      let audio;
-                      let isPersistent = false;
-
-                      try {
-                        const parentDoc = window.parent.document;
-                        audio = parentDoc.getElementById(AUDIO_ID);
-                        if (!audio) {
-                          audio = parentDoc.createElement('audio');
-                          audio.id = AUDIO_ID;
-                          audio.loop = true;
-                          audio.preload = 'none';
-                          audio.style.display = 'none';
-                          audio.src = '__MUSIC_DATA__';
-                          audio.volume = Number(slider.value) / 100;
-                          parentDoc.body.appendChild(audio);
-                        }
-                        isPersistent = true;
-                      } catch (err) {
-                        // Fallback σε browsers που απομονώνουν τα iframes.
-                        audio = document.createElement('audio');
-                        audio.loop = true;
-                        audio.preload = 'none';
-                        audio.src = '__MUSIC_DATA__';
-                        audio.volume = Number(slider.value) / 100;
-                        document.body.appendChild(audio);
-                        status.textContent = 'Ο browser περιορίζει τη συνέχεια της μουσικής.';
-                      }
-
-                      function reflectAudioState() {
-                        slider.value = String(Math.round(audio.volume * 100));
-                        percentage.textContent = slider.value + '%';
-                        status.textContent = audio.paused
-                          ? 'Η μουσική είναι κλειστή. Πάτησε ON.'
-                          : 'Η μουσική παίζει.';
-                      }
-                      reflectAudioState();
-
-                      slider.addEventListener('input', () => {
-                        audio.volume = Number(slider.value) / 100;
-                        percentage.textContent = slider.value + '%';
-                      });
-
-                      document.getElementById('start').addEventListener('click', async () => {
-                        try {
-                          await audio.play();
-                          status.textContent = isPersistent
-                            ? 'Η μουσική παίζει και συνεχίζει στην ενημέρωση των πωλήσεων.'
-                            : 'Η μουσική παίζει (η ανανέωση μπορεί να τη σταματήσει).';
-                        } catch (err) {
-                          status.textContent = 'Ο browser μπλόκαρε τον ήχο: ' + err.name;
-                        }
-                      });
-
-                      document.getElementById('stop').addEventListener('click', () => {
-                        audio.pause();
-                        audio.currentTime = 0;
-                        status.textContent = 'Η μουσική σταμάτησε.';
-                      });
-
-                      audio.addEventListener('error', () => {
-                        status.textContent = 'Δεν μπορεί να φορτωθεί το MP3.';
-                      });
-                    </script>
-                </body>
-                </html>
-                """.replace(
-                    "__INITIAL_VOLUME__", str(music_settings["volume"])
-                ).replace(
-                    "__MUSIC_DATA__", admin_music_url
+                upload_signature = (
+                    f"{selected_product_count}_"
+                    f"{uploaded_file_1.name}_"
+                    f"{uploaded_file_2.name if uploaded_file_2 is not None else ''}_"
+                    f"{uploaded_file_1.size}_"
+                    f"{uploaded_file_2.size if uploaded_file_2 is not None else 0}"
                 )
-                components.html(admin_player_html, height=105, scrolling=False)
-                st.caption("Πάτησε ON για εκκίνηση. Το MP3 συνεχίζει κατά την ενημέρωση των πωλήσεων όσο μένει ανοικτή η σελίδα.")
-            else:
-                st.warning("Δεν βρέθηκε το background_music.mp3 δίπλα στο app.py.")
-
-            # Μόνο νέα αρχεία προκαλούν μεταφόρτωση στο GitHub.
-            # Έτσι αποφεύγονται επαναλαμβανόμενες ενημερώσεις σε κάθε rerun.
-            upload_signature = None
-            if uploaded_file_1 is not None and (
-                selected_product_count == 1 or uploaded_file_2 is not None
-            ):
-                digest = hashlib.sha256()
-                digest.update(str(selected_product_count).encode("ascii"))
-                for file_item in (uploaded_file_1, uploaded_file_2):
-                    if file_item is not None:
-                        digest.update(file_item.name.encode("utf-8"))
-                        digest.update(file_item.getbuffer())
-                upload_signature = digest.hexdigest()
-
-            if upload_signature is not None and (
-                upload_signature != st.session_state.get("last_uploaded_sig")
-            ):
 
                 gh_token = None
                 repo_name = None
-                github_sync_ok = True
-                sync_status = st.empty()
-                sync_status.info("Αποθήκευση Excel και συγχρονισμός με GitHub...")
 
                 try:
 
@@ -727,41 +546,78 @@ with col_admin:
                         )
                     )
 
-                files_for_sync = []
+                with open(
+                    excel_path_1,
+                    "wb"
+                ) as f:
 
-                with open(excel_path_1, "wb") as f:
-                    f.write(uploaded_file_1.getbuffer())
-                files_for_sync.append(excel_path_1)
+                    f.write(
+                        uploaded_file_1
+                        .getbuffer()
+                    )
+
+                if gh_token and repo_name:
+
+                    upload_to_github(
+                        excel_path_1,
+                        repo_name,
+                        gh_token,
+                        "Auto-update sales file 1",
+                    )
 
                 if selected_product_count == 2:
-                    with open(excel_path_2, "wb") as f:
-                        f.write(uploaded_file_2.getbuffer())
-                    files_for_sync.append(excel_path_2)
+                    with open(
+                        excel_path_2,
+                        "wb"
+                    ) as f:
+
+                        f.write(
+                            uploaded_file_2
+                            .getbuffer()
+                        )
+
+                    if gh_token and repo_name:
+
+                        upload_to_github(
+                            excel_path_2,
+                            repo_name,
+                            gh_token,
+                            "Auto-update sales file 2",
+                        )
 
                 with open(product_count_path, "w", encoding="utf-8") as count_file:
                     count_file.write(str(selected_product_count))
                 active_product_count = selected_product_count
-                files_for_sync.extend([product_count_path, time_path, date_path])
 
                 if gh_token and repo_name:
-                    github_sync_ok, sync_message = upload_files_to_github(
-                        files_for_sync, repo_name, gh_token
+                    upload_to_github(
+                        product_count_path,
+                        repo_name,
+                        gh_token,
+                        "Update number of products",
                     )
-                else:
-                    github_sync_ok = False
-                    sync_message = "Δεν έχει ρυθμιστεί το GitHub στο Streamlit Secrets."
+
+                if gh_token and repo_name:
+
+                    upload_to_github(
+                        time_path,
+                        repo_name,
+                        gh_token,
+                        "Auto-update upload time",
+                    )
+
+                    upload_to_github(
+                        date_path,
+                        repo_name,
+                        gh_token,
+                        "Auto-update upload date",
+                    )
 
                 st.session_state[
                     "last_uploaded_sig"
                 ] = upload_signature
 
-                sync_status.empty()
-                if not github_sync_ok:
-                    st.warning(
-                        "Το Excel αποθηκεύτηκε προσωρινά, αλλά ο συγχρονισμός "
-                        f"δεν ολοκληρώθηκε: {sync_message}"
-                    )
-                elif selected_product_count == 1:
+                if selected_product_count == 1:
                     st.success(
                         "Το αρχείο ανέβηκε αυτόματα και συγχρονίστηκε επιτυχώς!"
                     )
@@ -772,6 +628,25 @@ with col_admin:
                         "επιτυχώς!"
                     )
 
+                components.html(
+                    """
+                    <script>
+
+                    setTimeout(
+                        function() {
+
+                            window.parent
+                            .location
+                            .reload();
+
+                        },
+                        1500
+                    );
+
+                    </script>
+                    """,
+                    height=0,
+                )
 
         elif password:
 
@@ -2063,10 +1938,6 @@ if banner_files:
     except OSError:
         img_src = ""
 
-# Η αναπαραγωγή έγινε μέρος του Admin για να εκκινεί με κανονικό κλικ.
-# Δεν εμφανίζουμε ήχο ή χειριστήρια στη δημόσια οθόνη πωλήσεων.
-music_player_html = ""
-
 # ==================================================
 # HTML
 # ==================================================
@@ -2208,6 +2079,7 @@ try:
         padding: 0;
 
     }}
+
 
     /* Κυλιόμενοι κωδικοί χαμηλών πωλήσεων, χωρίς χρωματιστή λωρίδα */
     @keyframes sales-warning-scroll {{
@@ -2630,7 +2502,6 @@ try:
 
         {ticker_html}
 
-        {music_player_html}
 
         <div class="content-wrapper">
 
