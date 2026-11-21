@@ -1722,7 +1722,7 @@ for product_df in (
 ticker_html = (
     '<div class="sales-warning-ticker" aria-label="Καταστήματα με 0 ή 1 πώληση">'
     '<div class="sales-warning-ticker-text">'
-    'καταστήματα με 0 ή 1 πώληση: '
+    '⚠️ Καταστήματα με 0 ή 1 πώληση: '
     + ','.join(sorted(low_sale_codes, key=int))
     + '</div></div>'
     if low_sale_codes else ''
