@@ -139,19 +139,24 @@ def upload_to_github(
 
         r = requests.get(
             url,
-            headers=headers
+            headers=headers,
+            timeout=(4, 12),
         )
 
-        sha = None
-
-        if r.status_code == 200:
-            sha = r.json().get("sha")
+        if r.status_code not in (200, 404):
+            return False
+        sha = r.json().get("sha") if r.status_code == 200 else None
 
         if not os.path.exists(file_path):
             return False
-
         with open(file_path, "rb") as f:
             content_bytes = f.read()
+
+        # Github stores the SHA-1 of the Git blob, not a plain file digest.
+        git_blob = b"blob " + str(len(content_bytes)).encode("ascii") + b"\0" + content_bytes
+        local_sha = hashlib.sha1(git_blob).hexdigest()
+        if sha == local_sha:
+            return True  # Nothing changed, so do not trigger another redeployment.
 
         content_encoded = (
             base64
@@ -170,7 +175,8 @@ def upload_to_github(
         put_r = requests.put(
             url,
             headers=headers,
-            data=json.dumps(data)
+            data=json.dumps(data),
+            timeout=(4, 12),
         )
 
         return put_r.status_code in [200, 201]
@@ -468,10 +474,12 @@ with col_admin:
                 "background_music.mp3",
             )
             if os.path.isfile(admin_music_file):
-                with open(admin_music_file, "rb") as music_source:
-                    admin_music_base64 = base64.b64encode(
-                        music_source.read()
-                    ).decode("ascii")
+                # Stream the publicly uploaded MP3 instead of embedding its
+                # bytes in the dashboard every time the Excel widget reruns.
+                admin_music_url = (
+                    "https://raw.githubusercontent.com/"
+                    "tosoun/sat-sales-tv-tosoun/main/background_music.mp3"
+                )
 
                 admin_player_html = r"""
                 <!doctype html>
@@ -518,7 +526,7 @@ with col_admin:
                           audio = parentDoc.createElement('audio');
                           audio.id = AUDIO_ID;
                           audio.loop = true;
-                          audio.preload = 'auto';
+                          audio.preload = 'none';
                           audio.style.display = 'none';
                           audio.src = '__MUSIC_DATA__';
                           audio.volume = Number(slider.value) / 100;
@@ -529,7 +537,7 @@ with col_admin:
                         // Fallback σε browsers που απομονώνουν τα iframes.
                         audio = document.createElement('audio');
                         audio.loop = true;
-                        audio.preload = 'auto';
+                        audio.preload = 'none';
                         audio.src = '__MUSIC_DATA__';
                         audio.volume = Number(slider.value) / 100;
                         document.body.appendChild(audio);
@@ -576,7 +584,7 @@ with col_admin:
                 """.replace(
                     "__INITIAL_VOLUME__", str(music_settings["volume"])
                 ).replace(
-                    "__MUSIC_DATA__", "data:audio/mpeg;base64," + admin_music_base64
+                    "__MUSIC_DATA__", admin_music_url
                 )
                 components.html(admin_player_html, height=105, scrolling=False)
                 st.caption("Πάτησε ON για εκκίνηση. Το MP3 συνεχίζει κατά την ενημέρωση των πωλήσεων όσο μένει ανοικτή η σελίδα.")
@@ -603,6 +611,9 @@ with col_admin:
 
                 gh_token = None
                 repo_name = None
+                github_sync_ok = True
+                sync_status = st.empty()
+                sync_status.info("Αποθήκευση Excel και συγχρονισμός με GitHub...")
 
                 try:
 
@@ -705,12 +716,12 @@ with col_admin:
 
                 if gh_token and repo_name:
 
-                    upload_to_github(
+                    github_sync_ok = upload_to_github(
                         excel_path_1,
                         repo_name,
                         gh_token,
                         "Auto-update sales file 1",
-                    )
+                    ) and github_sync_ok
 
                 if selected_product_count == 2:
                     with open(
@@ -725,46 +736,53 @@ with col_admin:
 
                     if gh_token and repo_name:
 
-                        upload_to_github(
+                        github_sync_ok = upload_to_github(
                             excel_path_2,
                             repo_name,
                             gh_token,
                             "Auto-update sales file 2",
-                        )
+                        ) and github_sync_ok
 
                 with open(product_count_path, "w", encoding="utf-8") as count_file:
                     count_file.write(str(selected_product_count))
                 active_product_count = selected_product_count
 
                 if gh_token and repo_name:
-                    upload_to_github(
+                    github_sync_ok = upload_to_github(
                         product_count_path,
                         repo_name,
                         gh_token,
                         "Update number of products",
-                    )
+                    ) and github_sync_ok
 
                 if gh_token and repo_name:
 
-                    upload_to_github(
+                    github_sync_ok = upload_to_github(
                         time_path,
                         repo_name,
                         gh_token,
                         "Auto-update upload time",
-                    )
+                    ) and github_sync_ok
 
-                    upload_to_github(
+                    github_sync_ok = upload_to_github(
                         date_path,
                         repo_name,
                         gh_token,
                         "Auto-update upload date",
-                    )
+                    ) and github_sync_ok
 
                 st.session_state[
                     "last_uploaded_sig"
                 ] = upload_signature
 
-                if selected_product_count == 1:
+                sync_status.empty()
+                if gh_token and repo_name and not github_sync_ok:
+                    st.warning(
+                        "Το Excel αποθηκεύτηκε στην εφαρμογή, αλλά μία ή "
+                        "περισσότερες ενημερώσεις στο GitHub απέτυχαν. "
+                        "Ελέγξτε τη σύνδεση και το ιστορικό του GitHub."
+                    )
+                elif selected_product_count == 1:
                     st.success(
                         "Το αρχείο ανέβηκε αυτόματα και συγχρονίστηκε επιτυχώς!"
                     )
