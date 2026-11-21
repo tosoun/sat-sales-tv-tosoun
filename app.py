@@ -336,9 +336,8 @@ if background_music_available:
             const ID = 'sales-background-audio-persistent';
             const ENABLE_KEY = 'sales-music-enabled-v3';
             const VOLUME_KEY = 'sales-music-volume-v3';
-            const VERSION = 'tap-v4';
-            const previous = host.__salesBackgroundMusic;
-            if (previous && previous.version === VERSION) return;
+            const existing = host.__salesBackgroundMusic;
+            if (existing && existing.version === 'tap-v3') return;
 
             const read = (key, fallback) => {
               try { return host.localStorage.getItem(key) ?? fallback; }
@@ -346,92 +345,50 @@ if background_music_available:
             };
             const save = (key, value) => {
               try { host.localStorage.setItem(key, String(value)); }
-              catch (_) { /* Συσκευές χωρίς διαθέσιμο localStorage. */ }
+              catch (_) { /* Τα χειριστήρια λειτουργούν και χωρίς storage. */ }
             };
             let enabled = read(ENABLE_KEY, 'on') !== 'off';
             let volume = Math.max(0, Math.min(100,
               Number(read(VOLUME_KEY, '25')) || 0));
 
-            // Αν η εφαρμογή αναβαθμιστεί χωρίς πλήρες Refresh,
-            // σταματάμε και απενεργοποιούμε τους παλιούς χειριστές.
-            if (previous && previous.version !== VERSION) {
-              try {
-                previous.disable?.();
-                previous.attemptPlayOnGesture = () => false;
-              } catch (_) {}
-              save(ENABLE_KEY, enabled ? 'on' : 'off');
-            }
-
-            function nativeAudio() {
-              return doc.querySelector(
+            function findPlayer() {
+              let player = doc.getElementById(ID);
+              if (player) return player;
+              const source = doc.querySelector(
                 'audio[data-testid="stAudio"], [data-testid="stAudio"] audio, audio.stAudio'
               );
-            }
-
-            function sourceUrl() {
-              const source = nativeAudio();
-              return source && (source.currentSrc || source.src ||
+              const src = source && (source.currentSrc || source.src ||
                 source.querySelector('source')?.src);
-            }
-
-            function matchingMusicElements() {
-              const src = sourceUrl();
-              const media = doc.querySelectorAll('audio');
-              return Array.from(media).filter(el =>
-                el.id === ID || el.dataset.salesBackgroundMusic === 'yes' ||
-                (src && (el.currentSrc === src || el.src === src))
-              );
-            }
-
-            function stopEveryMusicElement() {
-              // Το OFF διακόπτει ακόμη και παλιά αντίγραφα του player.
-              matchingMusicElements().forEach(el => {
-                try {
-                  el.muted = true;
-                  el.volume = 0;
-                  el.pause();
-                  if (el.id === ID || el.dataset.salesBackgroundMusic === 'yes') {
-                    el.currentTime = 0;
-                  }
-                } catch (_) {}
-              });
-            }
-
-            function player() {
-              let el = doc.getElementById(ID);
-              if (el) return el;
-              const src = sourceUrl();
               if (!src) return null;
-              el = doc.createElement('audio');
-              el.id = ID;
-              el.dataset.salesBackgroundMusic = 'yes';
-              el.src = src;
-              el.loop = true;
-              el.preload = 'auto';
-              el.style.display = 'none';
-              el.volume = volume / 100;
-              doc.body.appendChild(el);
-              return el;
+              player = doc.createElement('audio');
+              player.id = ID;
+              player.src = src;
+              player.loop = true;
+              player.preload = 'auto';
+              player.style.display = 'none';
+              player.volume = volume / 100;
+              doc.body.appendChild(player);
+              return player;
             }
 
             function attemptPlayOnGesture() {
               if (!enabled) return false;
-              const el = player();
-              if (!el) return false;
-              el.loop = true;
-              el.muted = false;
-              el.volume = volume / 100;
-              if (el.paused) {
+              const player = findPlayer();
+              if (!player) return false;
+              player.loop = true;
+              player.muted = false;
+              player.volume = volume / 100;
+              if (player.paused) {
                 try {
-                  const promise = el.play();
-                  if (promise && promise.catch) promise.catch(() => {});
+                  const promise = player.play(); // Απευθείας μέσα στο click/touch.
+                  if (promise?.catch) promise.catch(() => {});
                 } catch (_) { return false; }
               }
               return true;
             }
 
             const controller = {
-              version: VERSION,
+              version: 'tap-v3',
               attemptPlayOnGesture,
               enable() {
                 enabled = true;
@@ -439,28 +396,26 @@ if background_music_available:
                 return attemptPlayOnGesture();
               },
               disable() {
-                // Αποθήκευση του OFF πριν σταματήσουμε: κανένα
-                // μεταγενέστερο άγγιγμα δεν επανεκκινεί τη μουσική.
                 enabled = false;
                 save(ENABLE_KEY, 'off');
-                stopEveryMusicElement();
+                const player = doc.getElementById(ID);
+                if (player) { player.pause(); player.currentTime = 0; }
               },
               setVolume(v) {
                 volume = Math.max(0, Math.min(100, Number(v) || 0));
                 save(VOLUME_KEY, volume);
-                const el = doc.getElementById(ID);
-                if (el && enabled) el.volume = volume / 100;
+                const player = doc.getElementById(ID);
+                if (player) player.volume = volume / 100;
               },
               state() {
-                const el = doc.getElementById(ID);
-                return { enabled, volume,
-                  playing: Boolean(el && !el.paused && !el.muted) };
+                const player = doc.getElementById(ID);
+                return { enabled, volume, playing: Boolean(player && !player.paused) };
               }
             };
             host.__salesBackgroundMusic = controller;
-            if (!enabled) stopEveryMusicElement();
 
-            // Ενεργοποίηση μόνο μετά από πραγματικό άγγιγμα / κλικ.
+            // Στο κυρίως Streamlit (κουμπιά, επιλογή Excel, περιφέρειες).
+            // Καμία αυτόματη εκκίνηση χωρίς πραγματική ενέργεια χρήστη.
             const onGesture = () => controller.attemptPlayOnGesture();
             doc.addEventListener('pointerdown', onGesture, true);
             doc.addEventListener('touchstart', onGesture, {capture: true, passive: true});
@@ -710,14 +665,10 @@ with col_admin:
                     c.enable(); // Άμεση εκκίνηση από το ίδιο click.
                     refreshStatus();
                   });
-                  const stopMusic = () => {
-                    const c = controller();
-                    if (!c) { status.textContent = 'Δεν φορτώθηκε ο player μουσικής.'; return; }
-                    c.disable();
+                  document.getElementById('stop').addEventListener('click', () => {
+                    controller()?.disable();
                     refreshStatus();
-                  };
-                  document.getElementById('stop').addEventListener('pointerdown', stopMusic);
-                  document.getElementById('stop').addEventListener('click', stopMusic);
+                  });
                   slider.addEventListener('input', () => {
                     const c = controller();
                     c?.setVolume(slider.value);
@@ -3581,35 +3532,22 @@ if st.session_state.pop("_return_to_dashboard_once", False):
         """
         <script>
         (() => {
-          const doc = window.parent.document;
-          let tries = 0;
-          function goToSales() {
-            tries += 1;
+          const goBack = () => {
             try {
-              const details = Array.from(doc.querySelectorAll('details'));
-              const admin = details.find(el =>
-                (el.querySelector('summary')?.textContent || '')
+              const doc = window.parent.document;
+              const admin = Array.from(doc.querySelectorAll('details'))
+                .find(el => (el.querySelector('summary')?.textContent || '')
                   .includes('Διαχείριση Αρχείων'));
-              // Κάνουμε click στο summary ώστε το Streamlit να κρατήσει
-              // σωστά την κατάσταση του expander.
-              if (admin && admin.open) {
-                admin.querySelector('summary')?.click();
-              }
-              const anchor = doc.getElementById('sales-display-anchor');
-              if (anchor) {
-                anchor.scrollIntoView({behavior:'smooth', block:'start'});
-              }
-              // Σε ανανέωση Streamlit τα στοιχεία μπορεί να εμφανιστούν
-              // με καθυστέρηση. Επαναλαμβάνουμε αν δεν έχουν κλείσει ακόμα.
-              if ((!admin || admin.open || !anchor) && tries < 30) {
-                setTimeout(goToSales, 250);
-              }
-            } catch (_) {
-              if (tries < 30) setTimeout(goToSales, 250);
+              if (admin && admin.open) admin.querySelector('summary')?.click();
+              setTimeout(() => {
+                const banner = doc.getElementById('sales-display-anchor');
+                banner?.scrollIntoView({behavior: 'smooth', block: 'start'});
+              }, 350);
+            } catch (err) {
+              /* Δεν επηρεάζουμε ποτέ την καταχώρηση Excel. */
             }
-          }
-          // Μικρή αναμονή για να τοποθετηθεί το ενημερωμένο DOM.
-          setTimeout(goToSales, 250);
+          };
+          setTimeout(goBack, 450);
         })();
         </script>
         """,
