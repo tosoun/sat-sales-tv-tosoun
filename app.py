@@ -1,6 +1,7 @@
 import base64
 import datetime
 import glob
+import html
 import json
 import os
 import re
@@ -1684,6 +1685,51 @@ total_value_2 = (
 
 
 # ==================================================
+# ΚΥΛΙΟΜΕΝΟ ΜΗΝΥΜΑ: ΚΑΤΑΣΤΗΜΑΤΑ ΜΕ 0 Ή 1 ΠΩΛΗΣΗ
+# Ελέγχει μόνο καταστήματα που υπάρχουν στο Excel.
+# ==================================================
+
+def stores_with_zero_or_one_sale(df_stores):
+    if df_stores.empty or not {"Κατάστημα", "Num_Sales"}.issubset(df_stores.columns):
+        return []
+
+    # Ο κωδικός είναι τα 3 ή 4 πρώτα ψηφία (όπως στο φίλτρο περιφερειών).
+    store_codes = df_stores["Κατάστημα"].astype(str).str.extract(
+        r"^\s*(\d{3,4})(?=\D|$)", expand=False
+    )
+    eligible = df_stores.assign(_store_code=store_codes).dropna(subset=["_store_code"])
+    if eligible.empty:
+        return []
+
+    # Συγκεντρώνει τυχόν περισσότερες από μία γραμμές του ίδιου καταστήματος.
+    sales_by_store = eligible.groupby("_store_code")["Num_Sales"].sum()
+    low_sales = sales_by_store[sales_by_store.isin([0.0, 1.0])]
+    return [
+        code
+        for code, qty in sorted(low_sales.items(), key=lambda pair: (pair[1], int(pair[0])))
+    ]
+
+
+low_sale_codes = set()
+for product_df in (
+    [df_stores_1]
+    + ([df_stores_2] if active_product_count == 2 else [])
+):
+    low_sale_codes.update(stores_with_zero_or_one_sale(product_df))
+
+# Μόνο οι κωδικοί, χωρίς ποσότητες ή ονόματα προϊόντων.
+# Όταν δεν υπάρχουν αντίστοιχες εγγραφές, δεν εμφανίζεται μήνυμα.
+ticker_html = (
+    '<div class="sales-warning-ticker" aria-label="Καταστήματα με 0 ή 1 πώληση">'
+    '<div class="sales-warning-ticker-text">'
+    'καταστήματα με 0 ή 1 πώληση: '
+    + ','.join(sorted(low_sale_codes, key=int))
+    + '</div></div>'
+    if low_sale_codes else ''
+)
+
+
+# ==================================================
 # ΕΞΑΓΩΓΗ ΤΡΕΧΟΥΣΑΣ ΠΛΗΡΟΦΟΡΙΑΣ ΣΕ EXCEL
 # ΜΙΚΡΟ ΚΟΥΜΠΙ ΔΙΠΛΑ ΣΤΗΝ ΠΕΡΙΦΕΡΕΙΑ
 # ==================================================
@@ -2032,6 +2078,42 @@ try:
         margin: 0;
         padding: 0;
 
+    }}
+
+
+    /* Κυλιόμενοι κωδικοί χαμηλών πωλήσεων, χωρίς χρωματιστή λωρίδα */
+    @keyframes sales-warning-scroll {{
+        from {{ transform: translateX(0); }}
+        to {{ transform: translateX(-100%); }}
+    }}
+
+    .sales-warning-ticker {{
+        width: 100%;
+        overflow: hidden;
+        background: transparent;
+        color: #f8e7ad;
+        border: none;
+        white-space: nowrap;
+    }}
+
+    .sales-warning-ticker-text {{
+        display: inline-block;
+        padding: 8px 0 8px 100%;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        animation: sales-warning-scroll 30s linear infinite;
+    }}
+
+    .sales-warning-ticker:hover .sales-warning-ticker-text {{
+        animation-play-state: paused;
+    }}
+
+    @media (prefers-reduced-motion: reduce) {{
+        .sales-warning-ticker-text {{
+            animation: none;
+            padding-left: 12px;
+        }}
     }}
 
 
@@ -2417,6 +2499,8 @@ try:
 
 
         {f'<div class="banner-container"><img src="{img_src}" class="banner-img" alt="banner"></div>' if img_src else ""}
+
+        {ticker_html}
 
 
         <div class="content-wrapper">
