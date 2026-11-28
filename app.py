@@ -1777,8 +1777,9 @@ def build_product_ticker(df_stores, product_title):
     else:
         codes_text = ", ".join(sorted(set(codes), key=int))
     safe_title = html.escape(str(product_title))
+    ticker_mode = "moving" if codes else "static"
     return (
-        '<div class="sales-warning-ticker">'
+        f'<div class="sales-warning-ticker" data-mode="{ticker_mode}">'
         f'<div class="sales-warning-label">⚠️ {safe_title} — Καταστήματα με 0 ή 1 πώληση:</div>'
         '<div class="sales-warning-viewport">'
         f'<div class="sales-warning-ticker-text">{codes_text}</div>'
@@ -2569,10 +2570,12 @@ try:
                     const viewport = row.querySelector('.sales-warning-viewport');
                     const text = row.querySelector('.sales-warning-ticker-text');
                     text.classList.remove('ready');
-                    const overflow = Math.max(0, text.scrollWidth - viewport.clientWidth);
-                    text.style.setProperty('--ticker-offset', `-${{overflow}}px`);
-                    text.style.setProperty('--ticker-duration', `${{Math.max(12, overflow / 35 + 6)}}s`);
-                    if (overflow > 1) text.classList.add('ready');
+                    if (row.dataset.mode !== "moving") return;
+                    const space = viewport.clientWidth - text.scrollWidth;
+                    const offset = space < 0 ? space : Math.max(0, space);
+                    text.style.setProperty('--ticker-offset', `${{offset || -12}}px`);
+                    text.style.setProperty('--ticker-duration', `${{Math.max(12, Math.abs(offset) / 35 + 6)}}s`);
+                    text.classList.add('ready');
                 }});
             }}
             fillTickers();
