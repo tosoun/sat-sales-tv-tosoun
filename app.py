@@ -1846,6 +1846,22 @@ def build_excel_file():
 
     output = BytesIO()
 
+    used_names = {"σύνοψη"}
+
+    def product_sheet_name(title):
+        base = re.sub(r"[\\/*?:\[\]]", " ", str(title)).strip().strip("'").strip() or "ΕΙΔΟΣ"
+        name = base[:31].rstrip("'")
+        suffix = 2
+        while name.casefold() in used_names:
+            tail = f" ({suffix})"
+            name = base[:31 - len(tail)] + tail
+            suffix += 1
+        used_names.add(name.casefold())
+        return name
+
+    sheet_1 = product_sheet_name(title_1)
+    sheet_2 = product_sheet_name(title_2) if active_product_count == 2 else None
+
     export_1 = prepare_export_df(
         df_stores_1,
         total_sum_1
@@ -1860,10 +1876,10 @@ def build_excel_file():
         ["Περιφέρεια", selected_region.upper()],
         ["Ημερομηνία", file_date_str],
         ["Ώρα", file_time_str],
-        ["Προϊόν 1", title_1],
+        ["Είδος", title_1],
     ]
     if active_product_count == 2:
-        summary_rows.append(["Προϊόν 2", title_2])
+        summary_rows.append(["Είδος", title_2])
 
     summary_df = pd.DataFrame(
         summary_rows,
@@ -1886,19 +1902,19 @@ def build_excel_file():
 
         export_1.to_excel(
             writer,
-            sheet_name="Προϊόν 1",
+            sheet_name=sheet_1,
             index=False
         )
 
         if active_product_count == 2:
             export_2.to_excel(
                 writer,
-                sheet_name="Προϊόν 2",
+                sheet_name=sheet_2,
                 index=False
             )
 
-        for sheet_name in (["Σύνοψη", "Προϊόν 1"] +
-                           (["Προϊόν 2"] if active_product_count == 2 else [])):
+        for sheet_name in (["Σύνοψη", sheet_1] +
+                           ([sheet_2] if active_product_count == 2 else [])):
 
             ws = writer.book[sheet_name]
 
