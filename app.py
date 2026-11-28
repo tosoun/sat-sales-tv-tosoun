@@ -1770,14 +1770,19 @@ def stores_with_zero_or_one_sale(df_stores):
 # Ξεχωριστό κυλιόμενο μήνυμα για κάθε ενεργό προϊόν.
 def build_product_ticker(df_stores, product_title):
     codes = stores_with_zero_or_one_sale(df_stores)
-    if not codes:
-        return ""
-    codes_text = ", ".join(sorted(set(codes), key=int))
+    if df_stores.empty:
+        codes_text = "Δεν υπάρχουν διαθέσιμα δεδομένα"
+    elif not codes:
+        codes_text = "Κανένα κατάστημα"
+    else:
+        codes_text = ", ".join(sorted(set(codes), key=int))
     safe_title = html.escape(str(product_title))
+    message = f'⚠️ {safe_title} — Καταστήματα με 0 ή 1 πώληση: {codes_text}'
     return (
         '<div class="sales-warning-ticker" aria-label="Καταστήματα με 0 ή 1 πώληση">'
-        '<div class="sales-warning-ticker-text">'
-        f'⚠️ {safe_title} — Καταστήματα με 0 ή 1 πώληση: {codes_text}'
+        '<div class="sales-warning-ticker-track">'
+        f'<div class="sales-warning-ticker-text">{message}</div>'
+        f'<div class="sales-warning-ticker-text" aria-hidden="true">{message}</div>'
         '</div></div>'
     )
 
@@ -2142,7 +2147,7 @@ try:
     /* Κυλιόμενοι κωδικοί χαμηλών πωλήσεων, χωρίς χρωματιστή λωρίδα */
     @keyframes sales-warning-scroll {{
         from {{ transform: translateX(0); }}
-        to {{ transform: translateX(-100%); }}
+        to {{ transform: translateX(-50%); }}
     }}
 
     .sales-warning-ticker {{
@@ -2154,23 +2159,32 @@ try:
         white-space: nowrap;
     }}
 
-    .sales-warning-ticker-text {{
-        display: inline-block;
-        padding: 8px 0 8px 100%;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.3px;
+    .sales-warning-ticker-track {{
+        display: flex;
+        width: max-content;
+        animation: none;
+    }}
+
+    .sales-warning-ticker-track.ready {{
         animation: sales-warning-scroll 30s linear infinite;
     }}
 
-    .sales-warning-ticker:hover .sales-warning-ticker-text {{
+    .sales-warning-ticker-text {{
+        flex: 0 0 auto;
+        box-sizing: border-box;
+        padding: 8px 40px 8px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }}
+
+    .sales-warning-ticker:hover .sales-warning-ticker-track {{
         animation-play-state: paused;
     }}
 
     @media (prefers-reduced-motion: reduce) {{
-        .sales-warning-ticker-text {{
+        .sales-warning-ticker-track.ready {{
             animation: none;
-            padding-left: 12px;
         }}
     }}
 
@@ -2559,6 +2573,29 @@ try:
         {f'<div class="banner-container"><img src="{img_src}" class="banner-img" alt="banner"></div>' if img_src else ""}
 
         {ticker_html}
+        <script>
+        (() => {{
+            function fillTickers() {{
+                document.querySelectorAll('.sales-warning-ticker').forEach(row => {{
+                    const track = row.querySelector('.sales-warning-ticker-track');
+                    const first = track.firstElementChild;
+                    track.classList.remove('ready');
+                    track.replaceChildren(first);
+                    const width = first.getBoundingClientRect().width;
+                    const count = Math.max(1, Math.ceil(row.clientWidth / Math.max(1, width)));
+                    for (let i = 1; i < count * 2; i++) {{
+                        const copy = first.cloneNode(true);
+                        copy.setAttribute('aria-hidden', 'true');
+                        track.appendChild(copy);
+                    }}
+                    track.classList.add('ready');
+                }});
+            }}
+            fillTickers();
+            window.addEventListener('resize', fillTickers);
+            if (document.fonts) document.fonts.ready.then(fillTickers);
+        }})();
+        </script>
 
 
         <div class="content-wrapper">
