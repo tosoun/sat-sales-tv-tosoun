@@ -1780,9 +1780,8 @@ def build_product_ticker(df_stores, product_title):
     ticker_mode = "moving" if codes else "static"
     return (
         f'<div class="sales-warning-ticker" data-mode="{ticker_mode}">'
-        f'<div class="sales-warning-label">⚠️ {safe_title} — Καταστήματα με 0 ή 1 πώληση:</div>'
         '<div class="sales-warning-viewport">'
-        f'<div class="sales-warning-ticker-text">{codes_text}</div>'
+        f'<div class="sales-warning-ticker-text">⚠️ {safe_title} — Καταστήματα με 0 ή 1 πώληση: {codes_text}</div>'
         '</div></div>'
     )
 
@@ -2144,15 +2143,12 @@ try:
     }}
 
 
-    /* Δύο καθαρές γραμμές: σταθερός τίτλος, κύλιση μόνο των κωδικών. */
+    /* Στατικό μήνυμα χωρίς κωδικούς, αλλιώς κύλιση ολόκληρου του κειμένου. */
     @keyframes sales-warning-scroll {{
-        0%, 15% {{ transform: translateX(0); }}
-        85%, 100% {{ transform: translateX(var(--ticker-offset, 0px)); }}
+        from {{ transform: translateX(var(--ticker-start)); }}
+        to {{ transform: translateX(var(--ticker-end)); }}
     }}
     .sales-warning-ticker {{
-        display: flex;
-        align-items: center;
-        gap: 10px;
         width: 100%;
         box-sizing: border-box;
         padding: 8px 12px;
@@ -2162,17 +2158,15 @@ try:
         text-align: left;
         border-bottom: 1px solid rgba(255,255,255,0.08);
     }}
-    .sales-warning-label {{ flex: 0 0 auto; max-width: 55%; }}
-    .sales-warning-viewport {{ flex: 1; min-width: 0; overflow: hidden; }}
+    .sales-warning-viewport {{ width: 100%; overflow: hidden; }}
     .sales-warning-ticker-text {{ width: max-content; white-space: nowrap; }}
+    .sales-warning-ticker[data-mode="static"] .sales-warning-ticker-text {{
+        width: auto; white-space: normal;
+    }}
     .sales-warning-ticker-text.ready {{
-        animation: sales-warning-scroll var(--ticker-duration, 20s) ease-in-out infinite alternate;
+        animation: sales-warning-scroll var(--ticker-duration, 30s) linear infinite;
     }}
     .sales-warning-ticker:hover .sales-warning-ticker-text {{ animation-play-state: paused; }}
-    @media (max-width: 600px) {{
-        .sales-warning-ticker {{ flex-direction: column; align-items: stretch; gap: 4px; }}
-        .sales-warning-label {{ max-width: 100%; }}
-    }}
     @media (prefers-reduced-motion: reduce) {{
         .sales-warning-ticker-text.ready {{ animation: none; }}
         .sales-warning-viewport {{ overflow-x: auto; }}
@@ -2571,10 +2565,11 @@ try:
                     const text = row.querySelector('.sales-warning-ticker-text');
                     text.classList.remove('ready');
                     if (row.dataset.mode !== "moving") return;
-                    const space = viewport.clientWidth - text.scrollWidth;
-                    const offset = space < 0 ? space : Math.max(0, space);
-                    text.style.setProperty('--ticker-offset', `${{offset || -12}}px`);
-                    text.style.setProperty('--ticker-duration', `${{Math.max(12, Math.abs(offset) / 35 + 6)}}s`);
+                    const start = viewport.clientWidth;
+                    const end = -text.scrollWidth;
+                    text.style.setProperty('--ticker-start', `${{start}}px`);
+                    text.style.setProperty('--ticker-end', `${{end}}px`);
+                    text.style.setProperty('--ticker-duration', `${{Math.max(12, (start - end) / 65)}}s`);
                     text.classList.add('ready');
                 }});
             }}
