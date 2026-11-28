@@ -302,183 +302,6 @@ def validate_uploaded_sales_file(file_bytes, display_name):
         raise ValueError(f"{display_name}: {exc}") from exc
 
 
-# ==================================================
-# ΜΟΝΙΜΗ ΠΗΓΗ ΗΧΟΥ (εκτός του διαχειριστικού)
-# Ο player υπάρχει στην κύρια σελίδα ακόμη κι όταν κλείνει το Admin.
-# Ο επισκέπτης δεν βλέπει κουμπιά μουσικής.
-# ==================================================
-background_music_file = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "background_music.mp3"
-)
-background_music_available = os.path.isfile(background_music_file)
-if background_music_available:
-    st.markdown(
-        """<style>
-        /* Κρύβουμε μόνο το σταθερό στοιχείο ήχου του Streamlit.
-           Ο ήχος παραμένει διαθέσιμος για τον admin player. */
-        [data-testid="stAudio"] { position: absolute !important;
-            width: 1px !important; height: 1px !important;
-            opacity: 0 !important; pointer-events: none !important;
-            overflow: hidden !important; }
-        </style>""",
-        unsafe_allow_html=True,
-    )
-    st.audio(background_music_file, format="audio/mpeg", loop=True, autoplay=False)
-    # Ο player ζει στη βασική σελίδα και ξεκινά στην πρώτη ενέργεια χρήστη.
-    # ON/OFF & ένταση αποθηκεύονται μόνο στον browser της συσκευής.
-    components.html(
-        r"""
-        <script>
-        (() => {
-          try {
-            const host = window.parent;
-            const doc = host.document;
-            const ID = 'sales-background-audio-persistent';
-            const ENABLE_KEY = 'sales-music-enabled-v3';
-            const VOLUME_KEY = 'sales-music-volume-v3';
-            const existing = host.__salesBackgroundMusic;
-            if (existing && existing.version === 'tap-v4-volume') return;
-
-            const read = (key, fallback) => {
-              try { return host.localStorage.getItem(key) ?? fallback; }
-              catch (_) { return fallback; }
-            };
-            const save = (key, value) => {
-              try { host.localStorage.setItem(key, String(value)); }
-              catch (_) { /* Τα χειριστήρια λειτουργούν και χωρίς storage. */ }
-            };
-            let enabled = read(ENABLE_KEY, 'on') !== 'off';
-            let volume = Math.max(0, Math.min(100,
-              Number(read(VOLUME_KEY, '25')) || 0));
-
-            // Η ιδιότητα audio.volume αγνοείται από ορισμένους browsers κινητών
-            // (κυρίως iPhone). Για αυτό ρυθμίζουμε την πραγματική στάθμη με
-            // Web Audio GainNode, αφήνοντας εναλλακτικά το audio.volume.
-            let volumeAudioContext = null;
-            let volumeGain = null;
-            let gainPlayer = null;
-
-            function applyVolume(player) {
-              if (!player) return;
-              if (volumeGain && gainPlayer === player) {
-                // Ένταση 0-100% και σε browsers που αγνοούν το audio.volume.
-                player.volume = 1;
-                volumeGain.gain.value = volume / 100;
-              } else {
-                player.volume = volume / 100;
-              }
-            }
-
-            function setupMobileVolume(player) {
-              if (!player || (volumeGain && gainPlayer === player)) return;
-              const AudioContextClass = host.AudioContext || host.webkitAudioContext;
-              if (!AudioContextClass) return;
-              try {
-                // Αποφεύγουμε να δρομολογήσουμε cross-origin ήχο χωρίς CORS,
-                // γιατί τότε το Web Audio μπορεί να τον κάνει αθόρυβο.
-                const mediaURL = new URL(player.src, doc.baseURI);
-                if (!['blob:', 'data:'].includes(mediaURL.protocol) &&
-                    mediaURL.origin !== doc.location.origin) return;
-                const ctx = new AudioContextClass();
-                const source = ctx.createMediaElementSource(player);
-                const gain = ctx.createGain();
-                source.connect(gain);
-                gain.connect(ctx.destination);
-                volumeAudioContext = ctx;
-                volumeGain = gain;
-                gainPlayer = player;
-                applyVolume(player);
-              } catch (error) {
-                // Κρατάμε τον αρχικό player αν δεν διατίθεται Web Audio.
-                console.warn('Music volume fallback:', error);
-              }
-            }
-
-            function findPlayer() {
-              let player = doc.getElementById(ID);
-              if (player) return player;
-              const source = doc.querySelector(
-                'audio[data-testid="stAudio"], [data-testid="stAudio"] audio, audio.stAudio'
-              );
-              const src = source && (source.currentSrc || source.src ||
-                source.querySelector('source')?.src);
-              if (!src) return null;
-              player = doc.createElement('audio');
-              player.id = ID;
-              player.src = src;
-              player.loop = true;
-              player.preload = 'auto';
-              player.style.display = 'none';
-              player.volume = volume / 100;
-              doc.body.appendChild(player);
-              return player;
-            }
-
-            function attemptPlayOnGesture() {
-              if (!enabled) return false;
-              const player = findPlayer();
-              if (!player) return false;
-              player.loop = true;
-              player.muted = false;
-              setupMobileVolume(player);
-              applyVolume(player);
-              // Το AudioContext ξυπνά από αληθινό άγγιγμα/κλικ.
-              if (volumeAudioContext && volumeAudioContext.state !== 'running') {
-                try {
-                  const resumed = volumeAudioContext.resume();
-                  if (resumed?.catch) resumed.catch(() => {});
-                } catch (_) { /* Η αναπαραγωγή μπορεί να συνεχίσει κανονικά. */ }
-              }
-              if (player.paused) {
-                try {
-                  const promise = player.play(); // Απευθείας μέσα στο click/touch.
-                  if (promise?.catch) promise.catch(() => {});
-                } catch (_) { return false; }
-              }
-              return true;
-            }
-
-            const controller = {
-              version: 'tap-v4-volume',
-              attemptPlayOnGesture,
-              enable() {
-                enabled = true;
-                save(ENABLE_KEY, 'on');
-                return attemptPlayOnGesture();
-              },
-              disable() {
-                enabled = false;
-                save(ENABLE_KEY, 'off');
-                const player = doc.getElementById(ID);
-                if (player) { player.pause(); player.currentTime = 0; }
-              },
-              setVolume(v) {
-                volume = Math.max(0, Math.min(100, Number(v) || 0));
-                save(VOLUME_KEY, volume);
-                const player = doc.getElementById(ID);
-                if (player) applyVolume(player);
-              },
-              state() {
-                const player = doc.getElementById(ID);
-                return { enabled, volume, playing: Boolean(player && !player.paused) };
-              }
-            };
-            host.__salesBackgroundMusic = controller;
-
-            // Στο κυρίως Streamlit (κουμπιά, επιλογή Excel, περιφέρειες).
-            // Καμία αυτόματη εκκίνηση χωρίς πραγματική ενέργεια χρήστη.
-            const onGesture = () => controller.attemptPlayOnGesture();
-            doc.addEventListener('pointerdown', onGesture, true);
-            doc.addEventListener('touchstart', onGesture, {capture: true, passive: true});
-            doc.addEventListener('click', onGesture, true);
-            doc.addEventListener('keydown', onGesture, true);
-          } catch (e) { console.warn('Music initialization:', e); }
-        })();
-        </script>
-        """,
-        height=0,
-        scrolling=False,
-    )
 
 
 col_admin, col_input_space = st.columns([4, 4])
@@ -662,77 +485,6 @@ with col_admin:
                     key="cheer_radio",
                 )
 
-            # ==================================================
-            # ΜΟΥΣΙΚΗ — ΧΕΙΡΙΣΤΗΡΙΑ ΜΟΝΟ ΣΤΟ ADMIN
-            # Το αρχείο και ο μόνιμος player είναι ΕΚΤΟΣ του expander.
-            # Έτσι το κλείσιμο του διαχειριστικού δεν σταματά τον ήχο.
-            # ==================================================
-            st.markdown("---")
-            st.markdown("🎵 **Μουσική υπόκρουση**")
-            if background_music_available:
-                admin_music_controls = r"""
-                <!doctype html><html lang="el"><head><meta charset="utf-8">
-                <style>
-                  body { margin: 0; color: #e6edf3; background: transparent;
-                    font-family: sans-serif; font-size: 13px; }
-                  .controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-                  button { cursor:pointer; border:0; border-radius:7px;
-                    padding:8px 17px; font-weight:700; font-size:14px; }
-                  #play { background:#178650; color:white; }
-                  #stop { background:#f1f1f1; color:#111; }
-                  label { display:flex; align-items:center; gap:9px; }
-                  input[type=range] { width:135px; accent-color:#178650; }
-                  #state { margin: 12px 0 0; color: #cbd5e1; font-size:12px; }
-                </style></head><body>
-                <div class="controls">
-                  <button id="play" type="button">▶ ON</button>
-                  <button id="stop" type="button">■ OFF</button>
-                  <label>🔊 Ένταση
-                    <input id="volume" type="range" min="0" max="100"
-                      value="25" step="5"/>
-                    <span id="volumeLabel">25%</span>
-                  </label>
-                </div>
-                <p id="state" role="status">Η μουσική ξεκινά όταν αγγίξετε την οθόνη.</p>
-                <script>
-                (() => {
-                  const status = document.getElementById('state');
-                  const slider = document.getElementById('volume');
-                  const readout = document.getElementById('volumeLabel');
-                  function controller() { return window.parent.__salesBackgroundMusic; }
-                  function refreshStatus() {
-                    const c = controller();
-                    if (!c) { status.textContent = 'Δεν φορτώθηκε ο player μουσικής.'; return; }
-                    const state = c.state();
-                    slider.value = state.volume;
-                    readout.textContent = state.volume + '%';
-                    status.textContent = !state.enabled ? 'Η μουσική είναι OFF.' :
-                      (state.playing ? 'Η μουσική παίζει.' :
-                      'Η μουσική είναι ON — ξεκινά με άγγιγμα ή κλικ στην οθόνη.');
-                  }
-                  document.getElementById('play').addEventListener('click', () => {
-                    const c = controller();
-                    if (!c) { status.textContent = 'Δεν φορτώθηκε ο player μουσικής.'; return; }
-                    c.enable(); // Άμεση εκκίνηση από το ίδιο click.
-                    refreshStatus();
-                  });
-                  document.getElementById('stop').addEventListener('click', () => {
-                    controller()?.disable();
-                    refreshStatus();
-                  });
-                  slider.addEventListener('input', () => {
-                    const c = controller();
-                    c?.setVolume(slider.value);
-                    readout.textContent = slider.value + '%';
-                  });
-                  refreshStatus();
-                })();
-                </script></body></html>
-                """
-                components.html(admin_music_controls, height=100, scrolling=False)
-                st.caption("Η μουσική ξεκινά με το πρώτο άγγιγμα ή κλικ, και μετά από Refresh. ON/OFF και ένταση μόνο εδώ.")
-            else:
-                st.error("Δεν βρέθηκε το background_music.mp3 δίπλα στο app.py.")
 
 
             # Δεν γράφουμε Excel αν λείπουν οι αναγκαίες στήλες.
@@ -2015,23 +1767,24 @@ def stores_with_zero_or_one_sale(df_stores):
     ]
 
 
-low_sale_codes = set()
-for product_df in (
-    [df_stores_1]
-    + ([df_stores_2] if active_product_count == 2 else [])
-):
-    low_sale_codes.update(stores_with_zero_or_one_sale(product_df))
+# Ξεχωριστό κυλιόμενο μήνυμα για κάθε ενεργό προϊόν.
+def build_product_ticker(df_stores, product_title):
+    codes = stores_with_zero_or_one_sale(df_stores)
+    if not codes:
+        return ""
+    codes_text = ", ".join(sorted(set(codes), key=int))
+    safe_title = html.escape(str(product_title))
+    return (
+        '<div class="sales-warning-ticker" aria-label="Καταστήματα με 0 ή 1 πώληση">'
+        '<div class="sales-warning-ticker-text">'
+        f'⚠️ {safe_title} — Καταστήματα με 0 ή 1 πώληση: {codes_text}'
+        '</div></div>'
+    )
 
-# Μόνο οι κωδικοί, χωρίς ποσότητες ή ονόματα προϊόντων.
-# Όταν δεν υπάρχουν αντίστοιχες εγγραφές, δεν εμφανίζεται μήνυμα.
-ticker_html = (
-    '<div class="sales-warning-ticker" aria-label="Καταστήματα με 0 ή 1 πώληση">'
-    '<div class="sales-warning-ticker-text">'
-    '⚠️ Καταστήματα με 0 ή 1 πώληση: '
-    + ','.join(sorted(low_sale_codes, key=int))
-    + '</div></div>'
-    if low_sale_codes else ''
-)
+
+ticker_html = build_product_ticker(df_stores_1, title_1)
+if active_product_count == 2:
+    ticker_html += build_product_ticker(df_stores_2, title_2)
 
 
 # ==================================================
@@ -3488,23 +3241,6 @@ try:
         """
 
 
-    # Όπως το χειροκρότημα: άγγιγμα/κλικ ΜΕΣΑ στο banner ή στους πίνακες.
-    # Το iframe της παρουσίασης δεν μεταφέρει αυτόματα τα clicks στο Streamlit.
-    if background_music_available:
-        html_content += """
-        <script>
-        (() => {
-          function resumeMusic() {
-            try {
-              window.parent.__salesBackgroundMusic?.attemptPlayOnGesture();
-            } catch (_) { /* Το banner λειτουργεί ανεξάρτητα από τη μουσική. */ }
-          }
-          document.addEventListener('pointerdown', resumeMusic, {capture: true, passive: true});
-          document.addEventListener('touchstart', resumeMusic, {capture: true, passive: true});
-          document.addEventListener('click', resumeMusic, true);
-        })();
-        </script>
-        """
 
     # ==================================================
     # WATERMARK
@@ -3576,7 +3312,7 @@ except Exception as excel_error:
 
 # ==================================================
 # ΕΠΙΣΤΡΟΦΗ ΣΤΗΝ ΠΑΡΟΥΣΙΑΣΗ ΜΕΤΑ ΤΟ UPLOAD
-# Δεν γίνεται πλήρης ανανέωση, ώστε να μη διακόπτεται ο ήχος.
+# Δεν γίνεται πλήρης ανανέωση.
 # ==================================================
 if st.session_state.pop("_return_to_dashboard_once", False):
     components.html(
