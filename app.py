@@ -1777,12 +1777,11 @@ def build_product_ticker(df_stores, product_title):
     else:
         codes_text = ", ".join(sorted(set(codes), key=int))
     safe_title = html.escape(str(product_title))
-    message = f'⚠️ {safe_title} — Καταστήματα με 0 ή 1 πώληση: {codes_text}'
     return (
-        '<div class="sales-warning-ticker" aria-label="Καταστήματα με 0 ή 1 πώληση">'
-        '<div class="sales-warning-ticker-track">'
-        f'<div class="sales-warning-ticker-text">{message}</div>'
-        f'<div class="sales-warning-ticker-text" aria-hidden="true">{message}</div>'
+        '<div class="sales-warning-ticker">'
+        f'<div class="sales-warning-label">⚠️ {safe_title} — Καταστήματα με 0 ή 1 πώληση:</div>'
+        '<div class="sales-warning-viewport">'
+        f'<div class="sales-warning-ticker-text">{codes_text}</div>'
         '</div></div>'
     )
 
@@ -2144,48 +2143,38 @@ try:
     }}
 
 
-    /* Κυλιόμενοι κωδικοί χαμηλών πωλήσεων, χωρίς χρωματιστή λωρίδα */
+    /* Δύο καθαρές γραμμές: σταθερός τίτλος, κύλιση μόνο των κωδικών. */
     @keyframes sales-warning-scroll {{
-        from {{ transform: translateX(0); }}
-        to {{ transform: translateX(-50%); }}
+        0%, 15% {{ transform: translateX(0); }}
+        85%, 100% {{ transform: translateX(var(--ticker-offset, 0px)); }}
     }}
-
     .sales-warning-ticker {{
-        width: 100%;
-        overflow: hidden;
-        background: transparent;
-        color: #f8e7ad;
-        border: none;
-        white-space: nowrap;
-    }}
-
-    .sales-warning-ticker-track {{
         display: flex;
-        width: max-content;
-        animation: none;
-    }}
-
-    .sales-warning-ticker-track.ready {{
-        animation: sales-warning-scroll 30s linear infinite;
-    }}
-
-    .sales-warning-ticker-text {{
-        flex: 0 0 auto;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
         box-sizing: border-box;
-        padding: 8px 40px 8px 12px;
+        padding: 8px 12px;
+        color: #f8e7ad;
         font-size: 12px;
         font-weight: 700;
-        letter-spacing: 0.3px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
     }}
-
-    .sales-warning-ticker:hover .sales-warning-ticker-track {{
-        animation-play-state: paused;
+    .sales-warning-label {{ flex: 0 0 auto; max-width: 55%; }}
+    .sales-warning-viewport {{ flex: 1; min-width: 0; overflow: hidden; }}
+    .sales-warning-ticker-text {{ width: max-content; white-space: nowrap; }}
+    .sales-warning-ticker-text.ready {{
+        animation: sales-warning-scroll var(--ticker-duration, 20s) ease-in-out infinite alternate;
     }}
-
+    .sales-warning-ticker:hover .sales-warning-ticker-text {{ animation-play-state: paused; }}
+    @media (max-width: 600px) {{
+        .sales-warning-ticker {{ flex-direction: column; align-items: stretch; gap: 4px; }}
+        .sales-warning-label {{ max-width: 100%; }}
+    }}
     @media (prefers-reduced-motion: reduce) {{
-        .sales-warning-ticker-track.ready {{
-            animation: none;
-        }}
+        .sales-warning-ticker-text.ready {{ animation: none; }}
+        .sales-warning-viewport {{ overflow-x: auto; }}
     }}
 
 
@@ -2577,18 +2566,13 @@ try:
         (() => {{
             function fillTickers() {{
                 document.querySelectorAll('.sales-warning-ticker').forEach(row => {{
-                    const track = row.querySelector('.sales-warning-ticker-track');
-                    const first = track.firstElementChild;
-                    track.classList.remove('ready');
-                    track.replaceChildren(first);
-                    const width = first.getBoundingClientRect().width;
-                    const count = Math.max(1, Math.ceil(row.clientWidth / Math.max(1, width)));
-                    for (let i = 1; i < count * 2; i++) {{
-                        const copy = first.cloneNode(true);
-                        copy.setAttribute('aria-hidden', 'true');
-                        track.appendChild(copy);
-                    }}
-                    track.classList.add('ready');
+                    const viewport = row.querySelector('.sales-warning-viewport');
+                    const text = row.querySelector('.sales-warning-ticker-text');
+                    text.classList.remove('ready');
+                    const overflow = Math.max(0, text.scrollWidth - viewport.clientWidth);
+                    text.style.setProperty('--ticker-offset', `-${{overflow}}px`);
+                    text.style.setProperty('--ticker-duration', `${{Math.max(12, overflow / 35 + 6)}}s`);
+                    if (overflow > 1) text.classList.add('ready');
                 }});
             }}
             fillTickers();
